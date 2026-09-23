@@ -197,6 +197,9 @@
       const ansage = new SpeechSynthesisUtterance(text);
       ansage.lang = 'de-DE';
       ansage.rate = 0.95;
+      // Lokale Stimme bevorzugen – dann verlässt der Text das Gerät nicht (siehe Datenschutz).
+      const lokal = speechSynthesis.getVoices().find((s) => s.localService && s.lang.toLowerCase().startsWith('de'));
+      if (lokal) ansage.voice = lokal;
       speechSynthesis.speak(ansage);
     } catch (e) {
       /* ohne Sprachausgabe weiter */

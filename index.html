@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Kostenloses Glücksrad für Unterricht, Spiele und Entscheidungen – Einträge eingeben, drehen, fertig.">
   <title>Glücksrad</title>
+  <script src="js/design.js"></script>
+  <!-- %BASIS_URL% ersetzt der Webserver durch die echte Adresse (siehe deploy/nginx.conf) -->
+  <link rel="canonical" href="%BASIS_URL%/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Glücksrad">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Glücksrad – online drehen, Teams bilden, Timer stellen">
+  <meta property="og:description" content="Einträge eingeben, drehen, fertig. Kostenlos, ohne Anmeldung – alle Daten bleiben im eigenen Browser.">
+  <meta property="og:url" content="%BASIS_URL%/">
+  <meta property="og:image" content="%BASIS_URL%/icons/vorschau.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Buntes Glücksrad mit goldenem Zeiger">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0b1020">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -18,7 +32,10 @@
 </head>
 <body>
   <header class="kopf">
-    <h1 id="titel">Glücksrad</h1>
+    <div class="marke">
+      <img class="marke-logo" src="icons/icon.svg" alt="" width="40" height="40">
+      <h1 id="titel">Glücksrad</h1>
+    </div>
     <nav class="kopf-aktionen" aria-label="Funktionen">
       <button id="timer-pille" class="timer-pille" type="button" data-oeffnen="werkzeuge" data-tab="timer" title="Timer öffnen" hidden>⏱ <span id="timer-pille-zeit">0:00</span></button>
       <button class="nav-btn" type="button" data-oeffnen="raeder" title="Meine Räder">📂<span>Meine Räder</span></button>
@@ -93,14 +110,69 @@
     </aside>
   </main>
 
+  <section class="info" aria-labelledby="info-titel">
+    <h2 id="info-titel">So funktioniert's</h2>
+    <ol class="schritte">
+      <li>
+        <strong>Einträge eingeben</strong>
+        <span>Namen, Klassen oder Aufgaben – einen pro Zeile. Oder eine Liste aus einer Datei laden.</span>
+      </li>
+      <li>
+        <strong>Rad drehen</strong>
+        <span>Per Knopf, Klick auf die Mitte oder Leertaste. Auf Wunsch mehrere Gewinner nacheinander.</span>
+      </li>
+      <li>
+        <strong>Weitermachen</strong>
+        <span>Gewinner entfernen, Teams bilden, Timer starten – alles auf einer Seite.</span>
+      </li>
+    </ol>
+
+    <h2>Wofür?</h2>
+    <ul class="einsatz">
+      <li><span aria-hidden="true">🏫</span><strong>Unterricht</strong><span>Wer präsentiert, wer fängt an, welche Gruppe ist dran.</span></li>
+      <li><span aria-hidden="true">🎲</span><strong>Spieleabend</strong><span>Reihenfolge auslosen, Aufgaben verteilen, Würfel und Münze inklusive.</span></li>
+      <li><span aria-hidden="true">💼</span><strong>Team &amp; Meetings</strong><span>Moderation, Protokoll oder Reihenfolge im Daily festlegen.</span></li>
+    </ul>
+
+    <h2>Häufige Fragen</h2>
+    <div class="faq">
+      <details>
+        <summary>Kostet das etwas? Brauche ich ein Konto?</summary>
+        <p>Nein. Das Glücksrad ist kostenlos und funktioniert ohne Anmeldung und ohne Werbung.</p>
+      </details>
+      <details>
+        <summary>Wo werden meine Listen gespeichert?</summary>
+        <p>Nur in deinem Browser (<code>localStorage</code>). Einträge, Verlauf und Einstellungen werden nicht an den Server übertragen. In einem anderen Browser oder auf einem anderen Gerät sind sie deshalb nicht vorhanden – dafür gibt es „Link zum Teilen kopieren“ und „Als Datei speichern“.</p>
+      </details>
+      <details>
+        <summary>Kann ich mehrere Listen verwalten?</summary>
+        <p>Ja. Unter „Meine Räder“ speicherst du beliebig viele Listen unter eigenem Namen und wechselst mit einem Klick.</p>
+      </details>
+      <details>
+        <summary>Funktioniert das am Beamer oder Smartboard?</summary>
+        <p>Ja. Im Vollbild (Taste <kbd>F</kbd>) wird nur das Rad gezeigt, ein laufender Timer bleibt oben sichtbar.</p>
+      </details>
+      <details>
+        <summary>Kann ich das Glücksrad als App nutzen?</summary>
+        <p>Ja. Auf dem iPad/iPhone über „Teilen → Zum Home-Bildschirm“, in Chrome und Edge über „App installieren“. Danach funktioniert es auch ohne Internet.</p>
+      </details>
+    </div>
+  </section>
+
   <footer class="fuss">
-    <span>🎡 Glücksrad</span>
-    <span class="fuss-punkt">·</span>
-    <span>Alle Daten bleiben in deinem Browser</span>
-    <span class="fuss-punkt">·</span>
-    <button class="link-btn" type="button" data-oeffnen="hilfe">Hilfe</button>
-    <span class="fuss-punkt">·</span>
-    <button class="link-btn" type="button" data-oeffnen="hilfe" data-abschnitt="datenschutz">Datenschutz</button>
+    <div class="fuss-marke">
+      <img src="icons/icon.svg" alt="" width="28" height="28">
+      <div>
+        <strong>Glücksrad</strong>
+        <span>Kostenlos · ohne Anmeldung · ohne Tracking</span>
+      </div>
+    </div>
+    <nav class="fuss-links" aria-label="Rechtliches und Hilfe">
+      <button class="link-btn" type="button" data-oeffnen="hilfe">Hilfe</button>
+      <a href="datenschutz.html">Datenschutz</a>
+      <a href="impressum.html">Impressum</a>
+    </nav>
+    <p class="fuss-copy">© <span id="jahr">2026</span> Glücksrad</p>
   </footer>
 
   <!-- Ergebnis -->
@@ -276,14 +348,17 @@
 
       <h3 id="datenschutz">Datenschutz</h3>
       <p>
-        Diese Seite läuft vollständig in deinem Browser. Es gibt keinen Server, keine Anmeldung,
-        keine Cookies und kein Tracking. Einträge, Verlauf und Einstellungen werden nur lokal
-        im Speicher deines Browsers (<code>localStorage</code>) abgelegt und nirgendwohin gesendet.
+        Das Glücksrad läuft in deinem Browser: keine Anmeldung, keine Cookies, kein Tracking,
+        keine Inhalte von Drittanbietern. Einträge, Verlauf und Einstellungen werden nur lokal
+        im Speicher deines Browsers (<code>localStorage</code>) abgelegt und nicht übertragen.
       </p>
       <p>
+        Beim Aufruf der Seite speichert der Webserver technisch notwendige Zugriffsdaten
+        (gekürzte IP-Adresse, Zeitpunkt, aufgerufene Datei, Browser) in Server-Logs.
         Beim Teilen per Link steckt die Liste im Link selbst – sie ist also für alle lesbar,
         denen du den Link schickst.
       </p>
+      <p><a href="datenschutz.html">Vollständige Datenschutzerklärung</a> · <a href="impressum.html">Impressum</a></p>
     </div>
   </dialog>
 

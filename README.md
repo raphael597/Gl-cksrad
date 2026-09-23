@@ -95,6 +95,36 @@ Seite normal, nur eben nicht offline). In Coolify also eine `https://`-Domain ei
 Der Service Worker (`sw.js`) holt immer zuerst die aktuelle Version vom Server und greift nur ohne
 Netz auf die gespeicherte Kopie zurück – neue Deployments sind also sofort da.
 
+## Seriös veröffentlichen – Checkliste
+
+Die Seite bringt alles mit, was ein ordentliches Webangebot ausmacht: Logo und Markenauftritt,
+Erklärtexte und FAQ, Fußzeile mit **Impressum** (`impressum.html`) und **Datenschutzerklärung**
+(`datenschutz.html`), eine Link-Vorschau für WhatsApp, Teams & Co. (`icons/vorschau.jpg`),
+keine Cookies, kein Tracking, keine Drittanbieter und gekürzte IP-Adressen in den Server-Logs.
+
+Vor dem Veröffentlichen erledigen:
+
+1. **Eigene Domain mit HTTPS** in Coolify eintragen (z. B. `https://gluecksrad.deine-domain.de`)
+   statt der `sslip.io`-Adresse. Erst dann gibt es das Schloss-Symbol, die App-Installation und
+   Offline-Betrieb.
+2. **Impressum ausfüllen:** alle rot gestrichelten `[Platzhalter]` in `impressum.html` durch deine
+   echten Angaben ersetzen. Wer eine Seite öffentlich anbietet, braucht in Deutschland in der Regel
+   ein Impressum (§ 5 DDG) – mit echten Daten.
+3. **Datenschutzerklärung ausfüllen:** Platzhalter in `datenschutz.html` ersetzen (Verantwortlicher,
+   Hoster, Löschfrist der Logs, Stand) und prüfen, ob alles zu deinem Betrieb passt.
+   Die Vorlage beschreibt genau, was diese Seite tut – sie ersetzt aber keine Rechtsberatung.
+4. Optional: Log-Aufbewahrung am Server passend zur Datenschutzerklärung begrenzen
+   (Docker-Logrotation bzw. Coolify-Einstellungen).
+
+**Bewusst nicht enthalten** sind Prüfsiegel, Zertifikate, „garantiert fair“-Aussagen, Bewertungen,
+Nutzerzahlen oder ein fremder Anbietername. Solche Angaben wären erfunden – zumal sich das Rad über
+den Admin-Bereich steuern lässt – und können als irreführende Werbung rechtlich Ärger machen.
+
+Die Link-Vorschau braucht absolute Adressen: `index.html` enthält dafür den Platzhalter
+`%BASIS_URL%`, den nginx beim Ausliefern automatisch durch die tatsächliche Adresse
+(z. B. `https://gluecksrad.deine-domain.de`) ersetzt. Beim lokalen Öffnen der Datei bleibt er stehen –
+das stört nicht.
+
 ## Deployment mit Coolify
 
 Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html`, `css/` und `js/` aus
@@ -120,6 +150,8 @@ Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html
 - `Cache-Control: no-cache` + ETag: Browser fragen kurz nach (304), neue Versionen sind nach
   einem Deployment sofort da.
 - gzip für HTML, CSS, JS und SVG
+- Server-Logs mit gekürzter IP-Adresse (`203.0.113.0` statt `203.0.113.42`) und ohne Referrer
+- ersetzt `%BASIS_URL%` im HTML durch die echte Adresse (für Link-Vorschau und Canonical-Link)
 - Sicherheits-Header, u. a. eine strenge Content-Security-Policy (nur eigene Skripte und Styles)
 - `/healthz` antwortet mit `ok`, versteckte Dateien (`.git` usw.) liefern 404
 
@@ -218,8 +250,11 @@ Das angezeigte Ergebnis wird danach aus der tatsächlichen Radstellung abgelesen
 ## Projektstruktur
 
 ```
-index.html           Seite mit Rad, Einträgen und allen Dialogen
+index.html           Seite mit Rad, Einträgen, Info-Bereich/FAQ und allen Dialogen
+impressum.html       Impressum (Platzhalter ausfüllen!)
+datenschutz.html     Datenschutzerklärung (Platzhalter ausfüllen!)
 css/style.css        Aussehen (Dunkel/Hell über CSS-Variablen)
+js/design.js         setzt Hell/Dunkel vor dem ersten Zeichnen (alle Seiten)
 js/logik.js          Reine Rechenlogik (Gewichtung, Auswahl, Winkel), ohne DOM, getestet
 js/speicher.js       Laden/Speichern im localStorage
 js/rad.js            Zeichnen und Animieren des Rads (Canvas), Farbschemen
@@ -234,7 +269,7 @@ js/werkzeuge.js      Timer, Würfel, Münzwurf, Zufallszahl
 js/pwa.js            meldet den Service Worker an
 sw.js                Service Worker (Offline-Betrieb)
 manifest.webmanifest App-Manifest (Name, Farben, Icons)
-icons/               App-Icons (SVG-Quellen + daraus erzeugte PNGs)
+icons/               App-Icons (SVG-Quellen + daraus erzeugte PNGs), Link-Vorschau vorschau.jpg
 tests/               Tests für js/logik.js
 Dockerfile           Container-Image (nginx) für Coolify & Co.
 deploy/nginx.conf    Webserver-Konfiguration (Caching, gzip, Sicherheits-Header, /healthz)

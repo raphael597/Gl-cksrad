@@ -7,7 +7,7 @@ FROM nginx:stable-alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Nur das, was der Browser braucht – keine Tests, kein README, kein package.json
-COPY index.html manifest.webmanifest sw.js /usr/share/nginx/html/
+COPY index.html impressum.html datenschutz.html manifest.webmanifest sw.js /usr/share/nginx/html/
 COPY css/ /usr/share/nginx/html/css/
 COPY js/ /usr/share/nginx/html/js/
 COPY icons/ /usr/share/nginx/html/icons/
