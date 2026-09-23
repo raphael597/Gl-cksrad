@@ -1790,6 +1790,77 @@ code {
   color: var(--gedimmt);
 }
 
+/* Handy als Fernbedienung */
+.live-an {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* QR-Codes brauchen dunkle Module auf hellem Grund – auch im dunklen Design */
+.live-qr {
+  aspect-ratio: 1;
+  padding: 4px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.live-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.live-qr path {
+  fill: #000;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.live-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.live-status[data-status="verbunden"]::before {
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+}
+
+.live-status[data-status="fehler"] {
+  color: var(--rot-text);
+  font-weight: 600;
+}
+
+.live-status[data-status="fehler"]::before {
+  background: var(--rot);
+}
+
+.live-link {
+  min-height: 58px;
+}
+
+@media (max-width: 560px) {
+  .live-an {
+    grid-template-columns: 1fr;
+  }
+
+  .live-qr {
+    width: min(100%, 240px);
+  }
+}
+
 .pin-form {
   display: flex;
   gap: 8px;

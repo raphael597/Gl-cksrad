@@ -1,9 +1,13 @@
 {
   "name": "gluecksrad",
   "version": "1.0.0",
-  "description": "Glücksrad mit verstecktem Admin-Bereich – reines HTML/CSS/JavaScript",
+  "description": "Glücksrad mit verstecktem Admin-Bereich und Handy-Fernbedienung – HTML/CSS/JavaScript, kleiner Node-Server ohne Abhängigkeiten",
   "private": true,
   "scripts": {
+    "start": "node server/live.js",
     "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

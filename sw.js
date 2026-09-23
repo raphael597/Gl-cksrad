@@ -15,16 +15,21 @@ const DATEIEN = [
   'index.html',
   'impressum.html',
   'datenschutz.html',
+  'fernbedienung.html',
   'manifest.webmanifest',
   'css/style.css',
+  'css/fernbedienung.css',
   'js/design.js',
   'js/logik.js',
   'js/speicher.js',
   'js/paket.js',
+  'js/qr.js',
   'js/effekte.js',
   'js/rad.js',
   'js/admin.js',
   'js/app.js',
+  'js/live.js',
+  'js/fernbedienung.js',
   'js/einstellungen.js',
   'js/listen.js',
   'js/teams.js',
@@ -59,7 +64,9 @@ self.addEventListener('activate', (ereignis) => {
 self.addEventListener('fetch', (ereignis) => {
   const anfrage = ereignis.request;
   const url = new URL(anfrage.url);
-  if (anfrage.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('/healthz')) return;
+  // Live-Verbindung (Handy-Fernbedienung) nie anfassen: Der Ereignisstrom endet nie
+  // und würde beim Zwischenspeichern hängen bleiben.
+  if (anfrage.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('/healthz') || url.pathname.includes('/api/')) return;
 
   ereignis.respondWith(
     fetch(anfrage)

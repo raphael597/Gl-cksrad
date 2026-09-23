@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
 
-  const { VOLLKREIS, indexUnterZeiger, ausrollen, mod } = global.Logik;
+  const { VOLLKREIS, UMLENKEN_SICHER, indexUnterZeiger, ausrollen, mod, umlenkPlan } = global.Logik;
 
   // Je 8 Farben; benachbarte Farben sollen sich gut unterscheiden.
   const FARBSCHEMEN = {
@@ -211,16 +211,17 @@
     /** Dreht das Rad bis zum Winkel `ziel` (Radiant). Löst auf, wenn es steht. */
     drehenZu(ziel, dauerMs) {
       return new Promise((fertig) => {
-        const start = this.rotation;
-        const weg = ziel - start;
         const n = this.eintraege.length;
         const t0 = performance.now();
-        let letztesFeld = indexUnterZeiger(start, n);
+        // Die laufende Bewegung liegt am Objekt, damit umlenken() sie ersetzen kann.
+        const lauf = { start: this.rotation, weg: ziel - this.rotation, t0, dauer: dauerMs, beginn: t0 };
+        this.lauf = lauf;
+        let letztesFeld = indexUnterZeiger(lauf.start, n);
         this.dreht = true;
 
         const schritt = (jetzt) => {
-          const t = Math.min(1, (jetzt - t0) / dauerMs);
-          this.rotation = start + weg * ausrollen(t);
+          const t = Math.min(1, Math.max(0, (jetzt - lauf.t0) / lauf.dauer));
+          this.rotation = lauf.start + lauf.weg * ausrollen(t);
 
           const feld = indexUnterZeiger(this.rotation, n);
           if (feld !== letztesFeld) {
@@ -233,14 +234,62 @@
             requestAnimationFrame(schritt);
           } else {
             // Winkel klein halten – optisch identisch.
-            this.rotation = mod(ziel, VOLLKREIS);
+            this.rotation = mod(lauf.start + lauf.weg, VOLLKREIS);
             this.dreht = false;
+            this.lauf = null;
             this.zeichnen();
             fertig();
           }
         };
         requestAnimationFrame(schritt);
       });
+    }
+
+    /** Stand der laufenden Drehung (Zeiten in ms ab jetzt) oder null. */
+    laufInfo() {
+      const lauf = this.lauf;
+      if (!lauf) return null;
+      const jetzt = performance.now();
+      const t = Math.min(1, Math.max(0, (jetzt - lauf.t0) / lauf.dauer));
+      const ende = lauf.t0 + lauf.dauer;
+      // Zeitpunkt, ab dem der Restweg unter die sichere Umlenk-Grenze fällt:
+      // Restweg(t) = weg · (1 − t)^4
+      const sicherBis = lauf.weg > UMLENKEN_SICHER
+        ? lauf.t0 + lauf.dauer * (1 - Math.pow(UMLENKEN_SICHER / lauf.weg, 0.25))
+        : lauf.t0;
+      return {
+        rotation: lauf.start + lauf.weg * ausrollen(t),
+        restweg: lauf.weg * Math.pow(1 - t, 4),
+        restMs: Math.max(0, ende - jetzt),
+        gesamtMs: ende - lauf.beginn,
+        umlenkbarMs: Math.max(0, sicherBis - jetzt),
+      };
+    }
+
+    /**
+     * Lenkt die laufende Drehung auf Feld `index` um – ohne Ruck (siehe Logik.umlenkPlan).
+     * Liefert false, wenn es dafür zu spät ist.
+     */
+    umlenken(index, zufall = Math.random) {
+      const lauf = this.lauf;
+      if (!lauf) return false;
+      const jetzt = performance.now();
+      const t = Math.min(1, Math.max(0, (jetzt - lauf.t0) / lauf.dauer));
+      const rotation = lauf.start + lauf.weg * ausrollen(t);
+      const plan = umlenkPlan({
+        rotation,
+        restweg: lauf.weg * Math.pow(1 - t, 4),
+        restzeit: lauf.dauer * (1 - t),
+        index,
+        anzahl: this.eintraege.length,
+        zufall,
+      });
+      if (!plan) return false;
+      lauf.start = rotation;
+      lauf.weg = plan.weg;
+      lauf.t0 = jetzt;
+      lauf.dauer = plan.dauer;
+      return true;
     }
   }
 

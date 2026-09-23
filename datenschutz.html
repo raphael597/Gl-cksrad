@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Datenschutzerklärung des Glücksrads: keine Cookies, kein Tracking, Daten bleiben im Browser.">
+  <meta name="description" content="Datenschutzerklärung des Glücksrads: keine Cookies, kein Tracking, Listen bleiben im Browser.">
   <title>Datenschutz – Glücksrad</title>
   <script src="js/design.js"></script>
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -25,8 +25,10 @@
 
     <div class="kurzfassung">
       <strong>Kurz gesagt:</strong> Keine Anmeldung, keine Cookies, kein Tracking, keine Inhalte von
-      Drittanbietern. Deine Einträge bleiben in deinem Browser. Der Webserver protokolliert nur
-      technisch notwendige Zugriffsdaten mit gekürzter IP-Adresse.
+      Drittanbietern. Deine Einträge bleiben in deinem Browser – nur wenn du ein Handy als
+      Fernbedienung verbindest, reicht der Server das aktuelle Rad an dein Handy weiter, ohne es zu
+      speichern. Der Webserver protokolliert nur technisch notwendige Zugriffsdaten mit gekürzter
+      IP-Adresse.
     </div>
 
     <h2>1. Verantwortlich</h2>
@@ -59,8 +61,8 @@
       Damit deine Listen beim nächsten Besuch noch da sind, speichert das Glücksrad Einträge,
       gespeicherte Räder, den Verlauf und deine Einstellungen im lokalen Speicher deines Browsers
       (<code>localStorage</code>). Diese Daten verlassen dein Gerät nicht und werden nicht an den
-      Server übertragen. Du kannst sie jederzeit über die Einstellungen deines Browsers
-      („Websitedaten löschen“) entfernen.
+      Server übertragen (Ausnahme: die Handy-Fernbedienung, siehe Abschnitt 5). Du kannst sie
+      jederzeit über die Einstellungen deines Browsers („Websitedaten löschen“) entfernen.
     </p>
     <p>
       Wenn du die Seite als App installierst oder offline nutzt, legt der Browser außerdem eine Kopie
@@ -78,7 +80,24 @@
       Server-Logs auf. Wer den Link erhält, kann die Liste aber lesen.
     </p>
 
-    <h2>5. Sprachausgabe</h2>
+    <h2>5. Handy als Fernbedienung (optional)</h2>
+    <p>
+      Wenn du ein Handy als Fernbedienung verbindest, müssen Rechner und Handy Daten austauschen.
+      Das läuft verschlüsselt (HTTPS) über unseren Server: der Titel und die Einträge des aktuellen
+      Rads, die zuletzt gezogenen Einträge, die Einstellungen der Fernbedienung und die Befehle vom
+      Handy (z. B. „drehen“). Der Server leitet sie nur weiter und hält dabei den jeweils letzten
+      Stand im Arbeitsspeicher, damit ein neu verbundenes Handy ihn sofort anzeigen kann. Nichts davon
+      wird auf die Festplatte geschrieben oder protokolliert; der Stand wird spätestens
+      10 Minuten nach dem Trennen des letzten Geräts gelöscht (und bei jedem Neustart des Servers).
+    </p>
+    <p>
+      Zugang hat nur, wer den zufällig erzeugten Handy-Link kennt. Er wird im Browser des Rechners
+      und des Handys gespeichert und lässt sich jederzeit durch einen neuen ersetzen oder beenden.
+      Ohne verbundenes Handy findet kein solcher Austausch statt. Rechtsgrundlage ist
+      Art. 6 Abs. 1 lit. b bzw. f DSGVO (Bereitstellung der von dir gewünschten Funktion).
+    </p>
+
+    <h2>6. Sprachausgabe</h2>
     <p>
       Die Funktion „Gewinner vorlesen“ ist standardmäßig ausgeschaltet. Sie nutzt die Sprachausgabe
       deines Browsers bzw. Betriebssystems; wenn verfügbar, wird eine lokale Stimme verwendet.
@@ -86,14 +105,14 @@
       Browser-Herstellers übertragen.
     </p>
 
-    <h2>6. Keine Analyse, keine Werbung, keine Drittanbieter</h2>
+    <h2>7. Keine Analyse, keine Werbung, keine Drittanbieter</h2>
     <p>
       Es werden keine Analyse- oder Tracking-Werkzeuge, keine Werbenetzwerke, keine eingebetteten
       Inhalte (z. B. Videos, Karten, Schriftarten von fremden Servern) und keine Social-Media-Plugins
       verwendet.
     </p>
 
-    <h2>7. Deine Rechte</h2>
+    <h2>8. Deine Rechte</h2>
     <p>
       Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung sowie
       auf Widerspruch (Art. 15–21 DSGVO). Wende dich dazu an die oben genannte Adresse. Außerdem kannst

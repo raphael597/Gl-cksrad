@@ -1,4 +1,4 @@
-# Nur index.html, css/, js/ und deploy/ werden fürs Image gebraucht.
+# Fürs Image gebraucht: HTML-Seiten, css/, js/, icons/, deploy/ und server/live.js.
 .git
 .gitignore
 .dockerignore

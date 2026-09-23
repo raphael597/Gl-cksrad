@@ -23,7 +23,10 @@
   let entfernenBeimSchliessen = false;
   let spaeterNeuLaden = false; // Speicheränderung aus anderem Tab während des Drehens
   let serieLaeuft = false; // mehrere Gewinner werden gerade nacheinander gezogen
+  let serieStand = null; // { gesamt, gezogen } während einer Serie
   let letzteSerie = []; // Namen der letzten Serie – für "Alle zurück ins Rad"
+  let aktuellerDreh = null; // { eintraege, index, optionen, erzwungen, verbraucht } – solange das Rad dreht
+  let ergebnisStand = null; // { name } oder { liste } – solange das Ergebnis-Fenster offen ist
 
   const eingabe = $('#eintraege');
   const titelFeld = $('#rad-titel');
@@ -36,7 +39,12 @@
     return daten.einstellungen.nichtDoppelt && letzter ? { ausschliessen: [letzter.name] } : {};
   }
 
-  Admin.init({ holeEintraege: () => daten.eintraege, holeOptionen: ziehOptionen });
+  Admin.init({ holeEintraege: () => daten.eintraege, holeOptionen: ziehOptionen, beiAenderung: () => regelnGeaendert() });
+
+  /** Andere Module (z. B. die Live-Fernbedienung) über Änderungen am Rad informieren. */
+  function zustandMelden() {
+    document.dispatchEvent(new CustomEvent('radzustand'));
+  }
 
   const zufallZwischen = (min, max) => min + Math.random() * (max - min);
 
@@ -129,6 +137,7 @@
     if (textfeld) eingabe.value = liste.join('\n');
     $('#anzahl').textContent = liste.length;
     Admin.aktualisieren();
+    zustandMelden();
   }
 
   function titelAnzeigen() {
@@ -151,6 +160,7 @@
     daten.titel = titelFeld.value.trim();
     speichern();
     titelAnzeigen();
+    zustandMelden();
   });
 
   titelFeld.addEventListener('keydown', (e) => {
@@ -195,6 +205,7 @@
     const anzahl = Number(e.anzahlZiehen) || 1;
     $('#anzahl-ziehen').value = String(anzahl);
     $('#btn-drehen').textContent = anzahl > 1 ? `${anzahl} Gewinner ziehen` : 'Rad drehen';
+    zustandMelden();
   }
 
   $('#anzahl-ziehen').addEventListener('change', (e) => {
@@ -265,31 +276,82 @@
    */
   async function drehVorgang(eintraege) {
     const admin = Speicher.ladeAdmin(); // frisch lesen – evtl. in einem anderen Fenster geändert
-    const auswahl = Logik.waehleGewinner(eintraege, admin, Math.random, ziehOptionen());
+    const optionen = ziehOptionen();
+    const auswahl = Logik.waehleGewinner(eintraege, admin, Math.random, optionen);
     const tempo = DREHDAUER[daten.einstellungen.dauer] || DREHDAUER.normal;
     const ziel = Logik.zielRotation(rad.rotation, auswahl.index, eintraege.length, Math.random, {
       minUmdrehungen: tempo.umdrehungen[0],
       maxUmdrehungen: tempo.umdrehungen[1],
     });
 
-    await rad.drehenZu(ziel, zufallZwischen(tempo.ms[0], tempo.ms[1]));
+    const erzwungen = auswahl.modus === 'erzwungen';
+    aktuellerDreh = {
+      eintraege,
+      index: auswahl.index,
+      optionen,
+      erzwungen,
+      // Name des einmalig festgelegten Gewinners, den dieser Dreh verbraucht
+      verbraucht: erzwungen && !admin.naechsterDauerhaft ? admin.naechster : '',
+    };
+    const fahrt = rad.drehenZu(ziel, zufallZwischen(tempo.ms[0], tempo.ms[1]));
+    zustandMelden();
+    await fahrt;
+    const dreh = aktuellerDreh;
+    aktuellerDreh = null;
 
     // Ergebnis immer aus der tatsächlichen Radstellung ablesen.
     const index = Logik.indexUnterZeiger(rad.rotation, eintraege.length);
     const name = eintraege[index];
 
-    // Ein einmalig festgelegter Gewinner ist jetzt verbraucht.
-    if (auswahl.modus === 'erzwungen' && !admin.naechsterDauerhaft) {
+    // Ein einmalig festgelegter Gewinner ist jetzt verbraucht – außer er wurde
+    // während der Drehung geändert und kam nicht mehr rechtzeitig zum Zug.
+    if (dreh.verbraucht) {
       const aktuell = Speicher.ladeAdmin();
-      aktuell.naechster = '';
-      Speicher.speichereAdmin(aktuell);
+      if (!aktuell.naechsterDauerhaft && Logik.schluessel(aktuell.naechster || '') === Logik.schluessel(dreh.verbraucht)) {
+        aktuell.naechster = '';
+        Speicher.speichereAdmin(aktuell);
+      }
     }
 
     daten.verlauf.unshift({ name, zeit: Date.now() });
     daten.verlauf = daten.verlauf.slice(0, VERLAUF_MAX);
     speichern();
     verlaufZeichnen();
+    zustandMelden();
     return { name, index };
+  }
+
+  /**
+   * Die Admin-Regeln haben sich während der Drehung geändert (Handy, Admin-Bereich,
+   * zweites Fenster): wenn nötig ohne Ruck auf ein neues Ziel umlenken.
+   * Rückgabe: 'umgelenkt', 'zu-spaet' oder '' (nichts zu tun).
+   */
+  function umlenkenPruefen() {
+    const dreh = aktuellerDreh;
+    if (!dreh || !rad.dreht) return '';
+    const admin = Speicher.ladeAdmin();
+    const { wahrscheinlichkeiten, modus } = Logik.analyse(dreh.eintraege, admin, dreh.optionen);
+    const erzwungen = modus === 'erzwungen';
+    const verbraucht = erzwungen && !admin.naechsterDauerhaft ? admin.naechster : '';
+
+    // Das bisherige Ziel bleibt, solange es erlaubt ist – es sei denn, es war nur
+    // festgelegt und die Festlegung ist jetzt aufgehoben: dann neu auslosen.
+    if (wahrscheinlichkeiten[dreh.index] > 0 && (erzwungen || !dreh.erzwungen)) {
+      if (erzwungen) Object.assign(dreh, { erzwungen, verbraucht });
+      return '';
+    }
+    const { index } = Logik.waehleGewinner(dreh.eintraege, admin, Math.random, dreh.optionen);
+    if (index !== dreh.index && !rad.umlenken(index)) return 'zu-spaet';
+    const umgelenkt = index !== dreh.index;
+    Object.assign(dreh, { index, erzwungen, verbraucht });
+    return umgelenkt ? 'umgelenkt' : '';
+  }
+
+  /** Admin-Regeln wurden geändert. Liefert das Ergebnis von umlenkenPruefen(). */
+  function regelnGeaendert() {
+    const ergebnis = umlenkenPruefen();
+    zustandMelden();
+    return ergebnis;
   }
 
   function kannDrehen() {
@@ -333,6 +395,7 @@
     const serie = [];
     Ton.bereit();
     serieLaeuft = true;
+    serieStand = { gesamt, gezogen: serie };
     bedienungSperren(true);
     serieAnzeigen(serie, gesamt);
 
@@ -350,10 +413,12 @@
     }
 
     serieLaeuft = false;
+    serieStand = null;
     bedienungSperren(false);
     zurueckholenAnzeigen();
     nachDemDrehen();
     serieZeigen(serie);
+    zustandMelden();
   }
 
   /** Kleine Leiste über dem Rad: "1. 7a · 2. 5b · …" */
@@ -393,6 +458,8 @@
     $('#ergebnis-hinweis').hidden = !auto;
     $('#btn-entfernen').hidden = auto;
     ergebnis.showModal();
+    ergebnisStand = { name };
+    zustandMelden();
     Ton.gewinn();
     vorlesen(name);
     if (daten.einstellungen.konfetti) Konfetti.starten($('#konfetti'));
@@ -414,6 +481,7 @@
     $('#ergebnis-hinweis').hidden = true;
     $('#btn-entfernen').hidden = true;
     ergebnis.showModal();
+    ergebnisStand = { liste: serie.slice() };
     if (daten.einstellungen.konfetti) Konfetti.starten($('#konfetti'));
   }
 
@@ -462,6 +530,8 @@
     if (entfernenBeimSchliessen) gewinnerEntfernen();
     entfernenBeimSchliessen = false;
     letzterGewinn = null;
+    ergebnisStand = null;
+    zustandMelden();
   });
 
   // ---------- Verlauf ----------
@@ -491,6 +561,7 @@
     daten.verlauf = [];
     speichern();
     verlaufZeichnen();
+    zustandMelden();
   }
 
   $('#btn-verlauf-leeren').addEventListener('click', verlaufLeeren);
@@ -600,12 +671,55 @@
   }
 
   window.addEventListener('storage', (e) => {
-    if (e.key === Speicher.SCHLUESSEL_ADMIN) Admin.aktualisieren();
+    if (e.key === Speicher.SCHLUESSEL_ADMIN) {
+      Admin.aktualisieren();
+      regelnGeaendert();
+    }
     if (e.key === Speicher.SCHLUESSEL_RAD) {
       if (rad.dreht || serieLaeuft) spaeterNeuLaden = true;
       else vonSpeicherLaden();
     }
   });
+
+  // ---------- Fernbedienung (siehe live.js) ----------
+
+  /** Dreh vom Handy aus. Liefert eine Meldung, wenn es gerade nicht geht, sonst ''. */
+  async function fernDrehen() {
+    if (rad.dreht || serieLaeuft) return 'Das Rad dreht gerade.';
+    if (daten.eintraege.length === 0) return 'Im Rad stehen keine Einträge.';
+    // Offene Fenster (z. B. das letzte Ergebnis) erst schließen – wie mit „Weiter“.
+    // Das close-Ereignis kommt verzögert; erst danach ist z. B. ein Gewinner entfernt.
+    const offen = [...document.querySelectorAll('dialog[open]')];
+    await Promise.all(
+      offen.map((dialog) => new Promise((weiter) => {
+        dialog.addEventListener('close', weiter, { once: true });
+        setTimeout(weiter, 500);
+        dialog.close();
+      }))
+    );
+    if (rad.dreht || serieLaeuft) return 'Das Rad dreht gerade.';
+    if (daten.eintraege.length === 0) return 'Im Rad stehen keine Einträge.';
+    starten();
+    return '';
+  }
+
+  /** Was die Fernbedienung über den Dreh wissen muss (ohne Admin-Regeln). */
+  function liveStand() {
+    const lauf = aktuellerDreh && rad.laufInfo();
+    return {
+      dreh: lauf
+        ? {
+            ziel: aktuellerDreh.eintraege[aktuellerDreh.index],
+            restMs: Math.round(lauf.restMs),
+            gesamtMs: Math.round(lauf.gesamtMs),
+            umlenkbarMs: Math.round(lauf.umlenkbarMs),
+          }
+        : null,
+      serie: serieStand ? { gesamt: serieStand.gesamt, gezogen: serieStand.gezogen.slice() } : null,
+      ergebnis: ergebnis.open ? ergebnisStand : null,
+      optionen: aktuellerDreh ? aktuellerDreh.optionen : ziehOptionen(),
+    };
+  }
 
   // ---------- Schnittstelle für die Zusatzmodule ----------
 
@@ -625,10 +739,17 @@
     verlaufLeeren,
     einstellungenAnwenden,
     dialogOeffnen,
+    fernDrehen,
+    liveStand,
+    regelnGeaendert,
+    ergebnisSchliessen() {
+      if (ergebnis.open) ergebnis.close();
+    },
     titelSetzen(titel) {
       daten.titel = titel;
       speichern();
       titelAnzeigen();
+      zustandMelden();
     },
     /**
      * Geprüfte Sicherung übernehmen (siehe Paket.sicherungPruefen): aktuelles Rad und
@@ -652,6 +773,7 @@
       eintraegeSetzen(eintraege);
       titelAnzeigen();
       zurueckholenAnzeigen();
+      zustandMelden();
     },
   };
 

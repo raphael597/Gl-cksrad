@@ -151,8 +151,59 @@
     return 1 - Math.pow(1 - t, 4);
   }
 
+  /*
+   * Umlenken während der Drehung (Live-Steuerung):
+   *   Das Rad läuft nach der Bremskurve aus. Ab jedem Zeitpunkt gilt:
+   *   Geschwindigkeit = 4 · Restweg / Restzeit. Für ein neues Ziel wird ein neuer
+   *   Restweg gewählt und die Restzeit so angepasst, dass die Geschwindigkeit im
+   *   Moment des Umlenkens gleich bleibt – das Rad ruckelt also nicht, es bremst
+   *   nur etwas früher oder später. Weicht der neue Restweg zu stark ab (kurz vor
+   *   dem Stillstand), wird nicht umgelenkt.
+   */
+  const UMLENKEN_MIN = 0.6; // neuer Restweg mindestens 60 % …
+  const UMLENKEN_MAX = 1.7; // … und höchstens 170 % des bisherigen
+
+  /** Ab diesem Restweg (Radiant) klappt das Umlenken auf jedes Feld sicher. */
+  const UMLENKEN_SICHER = Math.PI / Math.min(1 - UMLENKEN_MIN, UMLENKEN_MAX - 1);
+
+  /**
+   * Plant das Umlenken auf Feld `index`.
+   * Rückgabe: { weg, dauer } (neuer Restweg in Radiant, neue Restzeit) oder null.
+   */
+  function umlenkPlan({ rotation, restweg, restzeit, index, anzahl, zufall = Math.random, randAbstand = 0.12 }) {
+    if (!(anzahl > 0) || !(index >= 0 && index < anzahl) || !(restweg > 1e-6) || !(restzeit > 0)) return null;
+    const feld = VOLLKREIS / anzahl;
+
+    /** Nächster passender Restweg für eine Stelle im Feld (0 … 1). */
+    const planFuer = (stelle) => {
+      const basis = mod(-(index + stelle) * feld - rotation, VOLLKREIS);
+      const k = Math.round((restweg - basis) / VOLLKREIS);
+      let bester = null;
+      for (const kk of [k - 1, k, k + 1]) {
+        const weg = basis + Math.max(0, kk) * VOLLKREIS;
+        const faktor = weg / restweg;
+        if (weg <= 1e-6 || faktor < UMLENKEN_MIN || faktor > UMLENKEN_MAX) continue;
+        if (!bester || Math.abs(Math.log(faktor)) < Math.abs(Math.log(bester.faktor))) bester = { weg, faktor };
+      }
+      return bester && { weg: bester.weg, dauer: restzeit * bester.faktor };
+    };
+
+    // Zuerst eine zufällige Stelle im Feld (wirkt natürlich) …
+    const zufaellig = planFuer(randAbstand + zufall() * (1 - 2 * randAbstand));
+    if (zufaellig) return zufaellig;
+
+    // … kurz vor dem Stillstand die Stelle, die am wenigsten auffällt.
+    let bester = null;
+    for (let i = 0; i <= 16; i++) {
+      const plan = planFuer(randAbstand + (i / 16) * (1 - 2 * randAbstand));
+      if (plan && (!bester || Math.abs(Math.log(plan.weg / restweg)) < Math.abs(Math.log(bester.weg / restweg)))) bester = plan;
+    }
+    return bester;
+  }
+
   return {
     VOLLKREIS,
+    UMLENKEN_SICHER,
     schluessel,
     mod,
     gewichtVon,
@@ -161,5 +212,6 @@
     indexUnterZeiger,
     zielRotation,
     ausrollen,
+    umlenkPlan,
   };
 });

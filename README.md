@@ -2,10 +2,13 @@
 
 Ein Glücksrad für den Browser, das du selbst mit Einträgen füllst (z. B. Klassen oder Namen).
 Dazu gibt es einen **versteckten Admin-Bereich**, in dem du das Ergebnis beeinflussen kannst:
-Einträge sperren, bevorzugen oder den nächsten Gewinner direkt festlegen.
+Einträge sperren, bevorzugen oder den nächsten Gewinner direkt festlegen – auf Wunsch **live vom
+Handy aus**, sogar noch während sich das Rad dreht.
 Nach außen sieht das Rad dabei ganz normal aus.
 
 Reines HTML/CSS/JavaScript: kein Build, keine Bibliotheken, keine Internetverbindung nötig.
+Nur die Handy-Fernbedienung braucht zusätzlich einen kleinen Node-Server (ebenfalls ohne Pakete),
+der im Docker-Image schon enthalten ist.
 
 ## Starten
 
@@ -17,6 +20,17 @@ Optional über einen lokalen Server (praktisch, wenn du Hauptseite und Admin in 
 python3 -m http.server 8000
 # dann http://localhost:8000 öffnen
 ```
+
+Mit Handy-Fernbedienung (Node.js ≥ 18, keine Pakete nötig):
+
+```bash
+npm start
+# liefert die Seite und den Live-Server auf http://localhost:8000 aus
+```
+
+Damit das Handy den Rechner im WLAN erreicht, die Seite am Rechner über dessen IP-Adresse öffnen
+(z. B. `http://192.168.1.20:8000` statt `localhost`) – der QR-Code übernimmt diese Adresse.
+Oder gleich die Online-Version nehmen.
 
 ## Bedienung
 
@@ -134,8 +148,10 @@ das stört nicht.
 
 ## Deployment mit Coolify
 
-Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html`, `css/` und `js/` aus
-(keine Tests, kein README). HTTPS übernimmt Coolify.
+Das Repository enthält ein fertiges `Dockerfile`: nginx liefert die Seiten, `css/`, `js/` und `icons/` aus
+(keine Tests, kein README). Im selben Container läuft der Live-Server für die Handy-Fernbedienung
+(`server/live.js`, Node.js, nur intern auf Port 3101). HTTPS übernimmt Coolify. Es muss nichts
+zusätzlich eingerichtet werden – weiterhin nur Port `3100`.
 
 ### Einrichten
 
@@ -161,6 +177,10 @@ Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html
 - ersetzt `%BASIS_URL%` im HTML durch die echte Adresse (für Link-Vorschau und Canonical-Link)
 - Sicherheits-Header, u. a. eine strenge Content-Security-Policy (nur eigene Skripte und Styles)
 - `/healthz` antwortet mit `ok`, versteckte Dateien (`.git` usw.) liefern 404
+- leitet `/api/live/` an den Live-Server weiter – ungepuffert (für Server-Sent Events), mit langen
+  Zeitlimits und **ohne Log-Eintrag**, weil der Raum-Schlüssel in der Adresse steht
+- startet den Live-Server vor nginx (`deploy/live-server.sh` → `/docker-entrypoint.d/`), als Benutzer
+  `nginx`, und startet ihn bei einem Absturz neu. Der Docker-`HEALTHCHECK` prüft beide.
 
 ### Lokal testen
 
@@ -178,7 +198,11 @@ docker run --rm -p 8080:3100 gluecksrad
   die PIN wird dabei nicht übertragen.
 - **Der Admin-Bereich ist Teil der Seite.** Wer die Adresse kennt, kann ihn im *eigenen* Browser
   öffnen (Standard-PIN `1234`) und im Quelltext sehen, dass es ihn gibt. Deine Einstellungen
-  sind dabei nicht erreichbar – sie liegen nur in deinem Browser.
+  sind dabei nicht erreichbar – sie liegen nur in deinem Browser. Deine Fernbedienung erreicht nur,
+  wer deinen Handy-Link kennt.
+- **Hinter Cloudflare o. Ä.** funktioniert die Fernbedienung ebenfalls: Der Live-Server schickt alle
+  20 Sekunden ein Lebenszeichen, damit Proxys die Verbindung nicht schließen, und verbietet
+  Zwischenspeichern und Umformen (`Cache-Control: no-cache, no-transform`).
 
 ## Admin-Bereich
 
@@ -212,9 +236,54 @@ Nach dem Entsperren bleibt der Bereich bis zum Schließen des Tabs offen; „�
 Neue Links verwenden die kurze, neutrale Form `#r=…`; bisherige `#schummel=…`-Links
 funktionieren weiterhin. Schummel-Links funktionieren über verschiedene Geräte nur mit einer
 online erreichbaren Webadresse. Die Regeln stehen weiterhin kodiert im Link und sind für technisch
-versierte Empfänger lesbar und veränderbar. Die Seite hat keinen Server, der den Link geheim halten,
-signieren oder durch einen beliebig kurzen Code ersetzen könnte.
+versierte Empfänger lesbar und veränderbar. Der Server speichert keine Räder, kann den Link also nicht geheim halten,
+signieren oder durch einen beliebig kurzen Code ersetzen.
 Normale Listen- und Sicherungs-Links übernehmen weiterhin keine Admin-Regeln.
+
+### 📱 Handy als Fernbedienung (live steuern)
+
+Rechner (oder Beamer) zeigt das Rad, das Handy steuert es – über eine eigene Handy-Oberfläche:
+
+1. Am Rechner den Admin-Bereich öffnen → **„📱 Handy verbinden“**.
+2. Den angezeigten **QR-Code** mit der Handy-Kamera scannen (oder den Link aufs Handy schicken).
+3. Admin-Bereich schließen. Das Handy zeigt oben **„● Live“**, sobald beide verbunden sind.
+
+Auf dem Handy (`fernbedienung.html`):
+
+| Bereich | Was er tut |
+| --- | --- |
+| **Live-Karte** | zeigt, was das Rad gerade tut: bereit, dreht (mit Fortschritt und Ziel „→ 7b“), Ergebnis. Knopf **„🎡 Rad drehen“** dreht das Rad am Rechner (ein offenes Ergebnis wird dabei geschlossen), „Ergebnis schließen“ schließt das Ergebnis-Fenster. |
+| **Steuerung aktiv** | Hauptschalter (= „Manipulation aktiv“ im Admin-Bereich) |
+| **Nächstes Ergebnis** | Namen antippen = der nächste Dreh landet dort (mit „immer“ bei jedem Dreh). Nochmal antippen oder „🎲 Zufall“ hebt es auf. |
+| **Chancen** | − / + pro Eintrag (0–10×), 🚫 = nie, „alle normal“; daneben die echte Gewinnchance |
+| **Zuletzt gezogen** | die letzten Ergebnisse |
+
+**Live umlenken:** Tippst du einen Namen an, *während* sich das Rad dreht, fährt es ohne Ruck dorthin –
+es bremst nur etwas früher oder später. Das Handy zählt herunter, wie lange das noch sicher klappt
+(„Live umlenken: noch 2,1 s sicher“). Kurz vor dem Stillstand gelingt es nur noch, wenn das Ziel nah
+genug liegt; sonst meldet das Handy „Zu spät“ und die Festlegung gilt für den nächsten Dreh. Dasselbe
+gilt für Änderungen im Admin-Bereich oder in einem zweiten Fenster: Wird das Ziel gerade gesperrt oder
+ein anderer Gewinner festgelegt, lenkt das Rad um.
+
+Gut zu wissen:
+
+- Auf der Hauptseite ist nichts davon zu sehen – kein Symbol, keine Meldung.
+- Der Handy-Link bleibt gültig (auch nach Neuladen oder Neustart von Rechner und Server), bis du im
+  Admin-Bereich **„↻ Neuer Link“** oder **„Beenden“** wählst. Das Handy merkt sich den Link; es kann die
+  Seite auch zum Home-Bildschirm hinzufügen.
+- Sind am Rechner mehrere Tabs mit dem Rad offen, verbindet sich nur einer (die anderen übernehmen,
+  wenn er geschlossen wird). So dreht ein Befehl nie zwei Räder.
+- Es können mehrere Handys gleichzeitig verbunden sein.
+- Der Handy-Link ist der Schlüssel: Wer ihn kennt, kann das Rad steuern. Nicht weitergeben – im Zweifel
+  „↻ Neuer Link“.
+- Funktioniert nur über eine Webadresse mit Live-Server (Docker-Image oder `npm start`), nicht beim
+  direkten Öffnen von `index.html`. Das zeigt der Admin-Bereich dann auch an.
+
+**Technik:** Rechner und Handy verbinden sich per Server-Sent Events mit dem Live-Server
+(`server/live.js`) und treffen sich in einem „Raum“, dessen zufälliger Schlüssel (144 Bit) im Handy-Link
+steckt. Das Handy schickt Befehle, der Rechner führt sie aus und meldet seinen Stand zurück. Der Server
+reicht nur weiter, speichert nichts auf der Festplatte und vergisst einen Raum 10 Minuten nach dem
+Trennen des letzten Geräts.
 
 Die Regeln hängen am **Namen** des Eintrags (Groß-/Kleinschreibung egal). Wenn du also „7b“
 sperrst, aus dem Rad löschst und später wieder einträgst, ist sie weiterhin gesperrt.
@@ -222,8 +291,9 @@ sperrst, aus dem Rad löschst und später wieder einträgst, ist sie weiterhin g
 ### Zweites Fenster (Beamer + Laptop)
 
 Öffne die Hauptseite auf dem Beamer und `index.html#admin` in einem zweiten Fenster auf dem Laptop.
-Beide greifen auf denselben Speicher zu: Änderungen im Admin gelten sofort für den nächsten Dreh,
-ohne dass auf dem Beamer etwas zu sehen ist.
+Beide greifen auf denselben Speicher zu: Änderungen im Admin gelten sofort – sogar für eine laufende
+Drehung –, ohne dass auf dem Beamer etwas zu sehen ist. Bequemer geht es mit dem Handy als
+Fernbedienung (siehe oben).
 
 ### Warum es echt aussieht
 
@@ -271,17 +341,22 @@ Das angezeigte Ergebnis wird danach aus der tatsächlichen Radstellung abgelesen
 
 ```
 index.html           Seite mit Rad, Einträgen, Info-Bereich/FAQ und allen Dialogen
+fernbedienung.html   Handy-Fernbedienung (Link/QR-Code aus dem Admin-Bereich)
 impressum.html       Impressum (Platzhalter ausfüllen!)
 datenschutz.html     Datenschutzerklärung (Platzhalter ausfüllen!)
 css/style.css        Aussehen (Dunkel/Hell über CSS-Variablen)
+css/fernbedienung.css  zusätzliches Aussehen der Handy-Fernbedienung
 js/design.js         setzt Hell/Dunkel vor dem ersten Zeichnen (alle Seiten)
 js/paket.js          Übertragungs- und Schummel-Links verpacken und prüfen, ohne DOM, getestet
-js/logik.js          Reine Rechenlogik (Gewichtung, Auswahl, Winkel), ohne DOM, getestet
+js/logik.js          Reine Rechenlogik (Gewichtung, Auswahl, Winkel, Umlenken), ohne DOM, getestet
+js/qr.js             QR-Code-Erzeuger für den Handy-Link, ohne Bibliothek, getestet
 js/speicher.js       Laden/Speichern im localStorage
-js/rad.js            Zeichnen und Animieren des Rads (Canvas), Farbschemen
+js/rad.js            Zeichnen und Animieren des Rads (Canvas), Farbschemen, Umlenken
 js/effekte.js        Ton (Web Audio) und Konfetti
 js/admin.js          Admin-Bereich
 js/app.js            Kern der Hauptseite: Drehen, Ergebnis, Verlauf, Dialoge, Tastatur
+js/live.js           Fernbedienung, Seite am Rechner: Handy-Link, Befehle ausführen, Stand senden
+js/fernbedienung.js  Fernbedienung, Seite am Handy
 js/einstellungen.js  Dialog „Einstellungen“
 js/listen.js         Meine Räder, Datei laden/speichern, Teilen-Link
 js/teams.js          Teams bilden
@@ -291,9 +366,11 @@ js/pwa.js            meldet den Service Worker an
 sw.js                Service Worker (Offline-Betrieb)
 manifest.webmanifest App-Manifest (Name, Farben, Icons)
 icons/               App-Icons (SVG-Quellen + daraus erzeugte PNGs), Link-Vorschau vorschau.jpg
-tests/               Tests für js/logik.js und js/paket.js
-Dockerfile           Container-Image (nginx) für Coolify & Co.
-deploy/nginx.conf    Webserver-Konfiguration (Caching, gzip, Sicherheits-Header, /healthz)
+server/live.js       Live-Server für die Fernbedienung (Node.js, ohne Pakete); npm start
+tests/               Tests für Logik, Links, QR-Code und Live-Server
+Dockerfile           Container-Image (nginx + Live-Server) für Coolify & Co.
+deploy/nginx.conf    Webserver-Konfiguration (Caching, gzip, Sicherheits-Header, /healthz, /api/live/)
+deploy/live-server.sh  startet den Live-Server im Container vor nginx
 .dockerignore        hält Tests, README usw. aus dem Image heraus
 ```
 

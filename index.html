@@ -142,7 +142,7 @@
       </details>
       <details>
         <summary>Wo werden meine Listen gespeichert?</summary>
-        <p>Nur in deinem Browser (<code>localStorage</code>). Einträge, Verlauf und Einstellungen werden nicht an den Server übertragen. In einem anderen Browser oder auf einem anderen Gerät sind sie deshalb nicht vorhanden – dafür gibt es „Link zum Teilen kopieren“ und „Als Datei speichern“.</p>
+        <p>Nur in deinem Browser (<code>localStorage</code>). Einträge, Verlauf und Einstellungen werden nicht an den Server übertragen – außer du verbindest ein Handy als Fernbedienung, dann reicht der Server das aktuelle Rad an dein Handy weiter (ohne es zu speichern). In einem anderen Browser oder auf einem anderen Gerät sind deine Listen nicht vorhanden – dafür gibt es „Link zum Teilen kopieren“ und „Als Datei speichern“.</p>
       </details>
       <details>
         <summary>Kann ich mehrere Listen verwalten?</summary>
@@ -364,6 +364,8 @@
         Das Glücksrad läuft in deinem Browser: keine Anmeldung, keine Cookies, kein Tracking,
         keine Inhalte von Drittanbietern. Einträge, Verlauf und Einstellungen werden nur lokal
         im Speicher deines Browsers (<code>localStorage</code>) abgelegt und nicht übertragen.
+        Einzige Ausnahme: Verbindest du ein Handy als Fernbedienung, reicht der Server das aktuelle
+        Rad an dein Handy weiter, ohne es zu speichern.
       </p>
       <p>
         Beim Aufruf der Seite speichert der Webserver technisch notwendige Zugriffsdaten
@@ -474,6 +476,31 @@
         <p id="admin-modus" class="modus"></p>
       </section>
 
+      <section class="admin-abschnitt" id="live-abschnitt">
+        <h3>📱 Handy als Fernbedienung</h3>
+        <p class="klein">
+          Steuere das Rad live vom Handy: nächstes Ergebnis antippen, Chancen ändern, drehen –
+          sogar noch während sich das Rad dreht. Auf dem Bildschirm ist davon nichts zu sehen.
+        </p>
+        <div id="live-aus">
+          <button id="live-starten" class="btn btn-gold" type="button">📱 Handy verbinden</button>
+        </div>
+        <div id="live-an" class="live-an" hidden>
+          <div class="live-qr" id="live-qr" role="img" aria-label="QR-Code mit dem Handy-Link"></div>
+          <div class="live-info">
+            <p id="live-status" class="live-status" role="status" aria-live="polite"></p>
+            <p class="klein">QR-Code mit der Handy-Kamera scannen – oder den Link aufs Handy schicken. Der Link bleibt gültig, bis du einen neuen erzeugst.</p>
+            <label for="live-link" class="klein">Handy-Link</label>
+            <textarea id="live-link" class="admin-link-feld live-link" readonly></textarea>
+            <div class="knopfreihe">
+              <button id="live-kopieren" class="btn" type="button">🔗 Link kopieren</button>
+              <button id="live-neu" class="btn" type="button" title="Der alte Link funktioniert danach nicht mehr">↻ Neuer Link</button>
+              <button id="live-beenden" class="btn btn-gefahr" type="button">Beenden</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="admin-abschnitt">
         <h3>Nächstes Ergebnis festlegen</h3>
         <select id="admin-naechster"></select>
@@ -535,8 +562,10 @@
   <script src="js/paket.js?v=__ASSET_VERSION__"></script>
   <script src="js/effekte.js?v=__ASSET_VERSION__"></script>
   <script src="js/rad.js?v=__ASSET_VERSION__"></script>
+  <script src="js/qr.js?v=__ASSET_VERSION__"></script>
   <script src="js/admin.js?v=__ASSET_VERSION__"></script>
   <script src="js/app.js?v=__ASSET_VERSION__"></script>
+  <script src="js/live.js?v=__ASSET_VERSION__"></script>
   <script src="js/einstellungen.js?v=__ASSET_VERSION__"></script>
   <script src="js/listen.js?v=__ASSET_VERSION__"></script>
   <script src="js/teams.js?v=__ASSET_VERSION__"></script>

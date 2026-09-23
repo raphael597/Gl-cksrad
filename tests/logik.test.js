@@ -136,3 +136,63 @@ test('Ausschluss und Admin-Gewichte wirken zusammen', () => {
   const { wahrscheinlichkeiten } = Logik.analyse(['5a', '6a', '7b'], admin, { ausschliessen: ['5a'] });
   assert.deepEqual(wahrscheinlichkeiten, [0, 1, 0]);
 });
+
+// ---------- Umlenken während der Drehung (Live-Steuerung) ----------
+
+/** Simuliert eine Drehung bis zum Zeitpunkt t (0 … 1) und lenkt dann um. */
+function umlenkenBei(t, { weg = 40, dauer = 6000, index, anzahl = 8, seed = 1 }) {
+  const rotation = weg * Logik.ausrollen(t);
+  const restweg = weg * Math.pow(1 - t, 4);
+  const restzeit = dauer * (1 - t);
+  const plan = Logik.umlenkPlan({ rotation, restweg, restzeit, index, anzahl, zufall: zufallMitSeed(seed) });
+  return { plan, rotation, restweg, restzeit };
+}
+
+test('Umlenken landet genau auf dem neuen Feld', () => {
+  for (let index = 0; index < 8; index++) {
+    for (const t of [0.05, 0.2, 0.35]) {
+      const { plan, rotation } = umlenkenBei(t, { index, seed: index + 1 });
+      assert.ok(plan, `Plan für Feld ${index} bei t=${t}`);
+      assert.equal(Logik.indexUnterZeiger(rotation + plan.weg, 8), index);
+    }
+  }
+});
+
+test('Umlenken hält die Geschwindigkeit (kein Ruck)', () => {
+  const { plan, restweg, restzeit } = umlenkenBei(0.2, { index: 3 });
+  // Geschwindigkeit der Bremskurve am Anfang: 4 · Weg / Dauer
+  assert.ok(Math.abs((4 * plan.weg) / plan.dauer - (4 * restweg) / restzeit) < 1e-9);
+});
+
+test('Umlenken ändert die Restdauer nur maßvoll', () => {
+  for (let index = 0; index < 8; index++) {
+    const { plan, restzeit } = umlenkenBei(0.1, { index, seed: 7 + index });
+    const faktor = plan.dauer / restzeit;
+    assert.ok(faktor >= 0.6 && faktor <= 1.7, `Faktor ${faktor}`);
+  }
+});
+
+test('mit genug Restweg klappt Umlenken auf jedes Feld', () => {
+  // Restweg knapp über der sicheren Grenze, verschiedene Stellungen des Rads
+  for (let r = 0; r < 20; r++) {
+    for (let index = 0; index < 12; index++) {
+      const plan = Logik.umlenkPlan({
+        rotation: r * 0.37,
+        restweg: Logik.UMLENKEN_SICHER + 0.01,
+        restzeit: 1500,
+        index,
+        anzahl: 12,
+        zufall: zufallMitSeed(r * 12 + index),
+      });
+      assert.ok(plan, `Rotation ${r}, Feld ${index}`);
+    }
+  }
+});
+
+test('kurz vor dem Stillstand wird nicht mehr umgelenkt', () => {
+  // Das Rad steht fast: Restweg 0,05 rad, das Zielfeld liegt eine halbe Umdrehung entfernt.
+  const plan = Logik.umlenkPlan({ rotation: 0, restweg: 0.05, restzeit: 200, index: 4, anzahl: 8, zufall: () => 0.5 });
+  assert.equal(plan, null);
+  assert.equal(Logik.umlenkPlan({ rotation: 0, restweg: 0, restzeit: 0, index: 1, anzahl: 8 }), null);
+  assert.equal(Logik.umlenkPlan({ rotation: 0, restweg: 10, restzeit: 1000, index: 9, anzahl: 8 }), null);
+});
