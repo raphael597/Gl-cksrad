@@ -66,9 +66,54 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
 
 ### Online stellen (optional)
 
-Damit geteilte Links auch auf anderen Geräten funktionieren, muss die Seite im Netz liegen,
-z. B. kostenlos über **GitHub Pages** (Repository → Settings → Pages → Branch auswählen).
+Damit geteilte Links auch auf anderen Geräten funktionieren, muss die Seite im Netz liegen –
+am einfachsten mit **Coolify** (siehe [Deployment mit Coolify](#deployment-mit-coolify)).
 Admin-Einstellungen werden dabei **nie** mitgeteilt – sie bleiben im jeweiligen Browser.
+
+## Deployment mit Coolify
+
+Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html`, `css/` und `js/` aus
+(keine Tests, kein README). HTTPS übernimmt Coolify.
+
+### Einrichten
+
+1. In Coolify: Projekt öffnen → **+ New** → Resource hinzufügen:
+   - Repository öffentlich → **Public Repository**, URL `https://github.com/raphael597/Gl-cksrad`
+   - Repository privat → **Private Repository (with GitHub App)** oder **Deploy Key**
+2. **Branch** wählen (der, auf dem das Glücksrad liegt, z. B. `main` nach dem Mergen).
+3. **Build Pack** von *Nixpacks* auf **Dockerfile** umstellen.
+   Base Directory `/`, Dockerfile `/Dockerfile`.
+4. **Ports Exposes**: `80`
+5. **Domains**: z. B. `https://gluecksrad.deine-domain.de`
+   (vorher einen DNS-A-Record auf deinen Server setzen; das Zertifikat holt Coolify automatisch).
+6. Optional unter **Health Checks**: Pfad `/healthz`, Port `80`.
+   Das Image bringt außerdem einen eigenen Docker-`HEALTHCHECK` mit.
+7. **Deploy** klicken. Mit GitHub App bzw. Webhook wird bei jedem Push automatisch neu ausgerollt.
+
+### Was der Container macht (`deploy/nginx.conf`)
+
+- `Cache-Control: no-cache` + ETag: Browser fragen kurz nach (304), neue Versionen sind nach
+  einem Deployment sofort da.
+- gzip für HTML, CSS, JS und SVG
+- Sicherheits-Header, u. a. eine strenge Content-Security-Policy (nur eigene Skripte und Styles)
+- `/healthz` antwortet mit `ok`, versteckte Dateien (`.git` usw.) liefern 404
+
+### Lokal testen
+
+```bash
+docker build -t gluecksrad .
+docker run --rm -p 8080:80 gluecksrad
+# dann http://localhost:8080 öffnen
+```
+
+### Gut zu wissen
+
+- **Neue Adresse = neuer Speicher.** Der Browser speichert pro Adresse. Einträge, gespeicherte
+  Räder und Admin-Einstellungen (inkl. PIN) aus der lokalen `index.html` sind online also nicht da –
+  PIN und Gewichte im Browser, mit dem du präsentierst, einmal neu setzen.
+- **Der Admin-Bereich ist Teil der Seite.** Wer die Adresse kennt, kann ihn im *eigenen* Browser
+  öffnen (Standard-PIN `1234`) und im Quelltext sehen, dass es ihn gibt. Deine Einstellungen
+  sind dabei nicht erreichbar – sie liegen nur in deinem Browser.
 
 ## Admin-Bereich
 
@@ -155,6 +200,9 @@ js/listen.js         Meine Räder, Datei laden/speichern, Teilen-Link
 js/teams.js          Teams bilden
 js/statistik.js      Statistik und CSV-Export
 tests/               Tests für js/logik.js
+Dockerfile           Container-Image (nginx) für Coolify & Co.
+deploy/nginx.conf    Webserver-Konfiguration (Caching, gzip, Sicherheits-Header, /healthz)
+.dockerignore        hält Tests, README usw. aus dem Image heraus
 ```
 
 ## Tests

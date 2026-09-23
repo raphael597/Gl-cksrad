@@ -1,0 +1,11 @@
+# Nur index.html, css/, js/ und deploy/ werden fürs Image gebraucht.
+.git
+.gitignore
+.dockerignore
+node_modules
+tests
+*.md
+package.json
+package-lock.json
+Dockerfile
+docker-compose.yml

@@ -13,12 +13,14 @@
   for (const [schluessel, schema] of Object.entries(Rad.FARBSCHEMEN)) {
     const label = document.createElement('label');
     label.className = 'farbschema';
-    const vorschau = schema.farben
-      .slice(0, 6)
-      .map((f) => `<i style="background:${f}"></i>`)
-      .join('');
-    label.innerHTML = `<input type="radio" name="farben" value="${schluessel}"><span class="vorschau">${vorschau}</span><span class="name"></span>`;
+    label.innerHTML = `<input type="radio" name="farben" value="${schluessel}"><span class="vorschau"></span><span class="name"></span>`;
     label.querySelector('.name').textContent = schema.name;
+    // Farben per element.style setzen (nicht als style="…" im HTML) – das erlaubt eine strenge CSP.
+    for (const farbe of schema.farben.slice(0, 6)) {
+      const streifen = document.createElement('i');
+      streifen.style.background = farbe;
+      label.querySelector('.vorschau').appendChild(streifen);
+    }
     schemenBox.appendChild(label);
   }
 
