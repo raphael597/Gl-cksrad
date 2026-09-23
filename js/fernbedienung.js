@@ -337,6 +337,7 @@
       warteschlange = null;
       lokal = null;
       zeichnen();
+      fehlerSignal();
       return;
     }
     abschicken();
@@ -913,8 +914,13 @@
   function blindZeichnen(namen) {
     if (blind.hidden) return;
     const belegt = ecken(namen);
+    // Welche Ecke ist „scharf“? Die mit dem festgelegten nächsten Ergebnis.
+    const a = regeln();
+    const fest = a.aktiv && a.naechster && namen.some((n) => schluessel(n) === schluessel(a.naechster)) ? schluessel(a.naechster) : null;
     blind.querySelectorAll('.fb-blind-feld').forEach((feld) => {
-      feld.querySelector('span').textContent = belegt[Number(feld.dataset.ecke)] || '🎲';
+      const name = belegt[Number(feld.dataset.ecke)];
+      feld.querySelector('span').textContent = name || '🎲';
+      feld.classList.toggle('scharf', !!name && schluessel(name) === fest);
     });
     $('#fb-blind-punkt').dataset.status = !radDa() ? 'aus' : stand.dreh || stand.serie ? 'dreht' : 'bereit';
   }
@@ -943,7 +949,20 @@
 
   $('#fb-blind-start').addEventListener('click', blindStarten);
 
-  // Gesten: Tippen auf eine Ecke, nach oben wischen = drehen, nach unten = zurück.
+  /**
+   * Blind-Modus dreht nie selbst: Gestartet wird immer am Rechner, damit es echt wirkt.
+   * Eine Ecke legt nur fest (bzw. lenkt eine laufende Drehung um).
+   */
+  function blindFestlegen(name) {
+    if (!radDa()) {
+      melden('Der Rechner ist nicht verbunden.');
+      fehlerSignal();
+      return;
+    }
+    regelnAendern(name ? mitAktiv({ naechster: name }) : { naechster: '' });
+  }
+
+  // Gesten: Tippen auf eine Ecke = festlegen, nach oben wischen = aufheben, nach unten = zurück.
   let beruehrung = null;
   blind.addEventListener('pointerdown', (e) => {
     if (!e.isPrimary) return;
@@ -962,8 +981,9 @@
       if (dy > 0) {
         blindBeenden();
       } else {
-        vibrieren([20, 60, 20, 60, 20]);
-        befehlSenden({ typ: 'drehen' }).then((ok) => ok || fehlerSignal());
+        // Festlegung aufheben: ein doppelter Stoß, deutlich anders als die Ecken
+        vibrieren([120, 80, 120]);
+        blindFestlegen('');
       }
       return;
     }
@@ -974,7 +994,7 @@
     feld.classList.remove('blitz');
     void feld.offsetWidth;
     feld.classList.add('blitz');
-    festlegenUndDrehen(ecken(stand ? eindeutig(stand.eintraege) : [])[b.ecke]);
+    blindFestlegen(ecken(stand ? eindeutig(stand.eintraege) : [])[b.ecke]);
   });
 
   $('#fb-gewichte').addEventListener('click', (e) => {

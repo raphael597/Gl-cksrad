@@ -691,6 +691,12 @@ body.fb {
   animation: fb-blitz 0.45s ease-out;
 }
 
+/* Festgelegte Ecke: nur ein schwacher Rahmen – sichtbar für dich, unauffällig für andere */
+.fb-blind-feld.scharf {
+  box-shadow: inset 0 0 0 2px #3d3321;
+  color: #6b5d3d;
+}
+
 @keyframes fb-blitz {
   from { background: #1c1f27; color: #8a91a1; }
   to { background: #000; color: #3a3f4a; }
