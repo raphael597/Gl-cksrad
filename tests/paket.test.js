@@ -120,3 +120,45 @@ test('Schummel-Link verwirft fremde Felder und lehnt ungültige Regeln ab', () =
   const ohneFremdenGewinner = Paket.schummelLinkErstellen(DATEN, { aktiv: true, gewichte: {}, naechster: 'Fehlt', naechsterDauerhaft: true });
   assert.equal(ohneFremdenGewinner.admin.naechster, '');
 });
+
+test('kurzer Rad-Link übernimmt Unicode, Gewichte und festgelegten Gewinner', () => {
+  const paket = Paket.schummelLinkErstellen(DATEN, {
+    aktiv: true,
+    gewichte: { '5a': 0, '7b': 8, '6b': 1 },
+    naechster: 'Zoë „Z“',
+    naechsterDauerhaft: true,
+    pin: 'geheim',
+  });
+  const kurz = Paket.schummelKurzKodieren(paket);
+  assert.match(kurz, /^[A-Za-z0-9_-]+$/);
+  assert.ok(kurz.length < Paket.kodieren(paket).length / 2);
+  assert.deepEqual(Paket.schummelKurzDekodieren(kurz), {
+    ...paket,
+    admin: { ...paket.admin, gewichte: { '5a': 0, '7b': 8 } },
+  });
+  assert.ok(!kurz.includes('geheim'));
+});
+
+test('kurzer Rad-Link lehnt beschädigte und fremde Daten ab', () => {
+  const paket = Paket.schummelLinkErstellen(DATEN, {
+    aktiv: false, gewichte: {}, naechster: '', naechsterDauerhaft: false,
+  });
+  const kurz = Paket.schummelKurzKodieren(paket);
+  assert.deepEqual(Paket.schummelKurzDekodieren(kurz), paket);
+  assert.throws(() => Paket.schummelKurzDekodieren('%%%'));
+  assert.throws(() => Paket.schummelKurzDekodieren(kurz.slice(0, -2)));
+  const bytes = Uint8Array.from(atob(kurz.replace(/-/g, '+').replace(/_/g, '/')), (z) => z.charCodeAt(0));
+  bytes[0] = 99;
+  assert.throws(() => Paket.schummelKurzDekodieren(btoa(String.fromCharCode(...bytes))));
+  bytes[0] = 2;
+  bytes[1] = 128;
+  assert.throws(() => Paket.schummelKurzDekodieren(btoa(String.fromCharCode(...bytes))));
+});
+
+test('Rad mit vielen Einträgen bleibt im kurzen Link lesbar', () => {
+  const daten = { titel: 'Große Liste', eintraege: Array.from({ length: 500 }, (_, i) => `Person ${i + 1}`) };
+  const paket = Paket.schummelLinkErstellen(daten, {
+    aktiv: true, gewichte: { 'person 500': 0 }, naechster: 'Person 500', naechsterDauerhaft: false,
+  });
+  assert.deepEqual(Paket.schummelKurzDekodieren(Paket.schummelKurzKodieren(paket)), paket);
+});
