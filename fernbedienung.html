@@ -62,6 +62,22 @@
       </div>
     </section>
 
+    <!-- Blind-Modus -->
+    <section class="fb-karte">
+      <h2>🕶 Blind-Modus</h2>
+      <p class="klein fb-hinweis">Schwarzer Bildschirm mit vier großen Ecken zum Ertasten. <strong>Ecke antippen</strong> = festlegen und sofort drehen (läuft es schon: umlenken). <strong>Nach oben wischen</strong> = drehen, <strong>nach unten wischen</strong> = zurück.</p>
+      <details class="fb-blind-einstellen">
+        <summary>Ecken belegen</summary>
+        <div class="fb-blind-wahl" id="fb-blind-wahl">
+          <label>↖ oben links <select data-ecke="0"></select></label>
+          <label>↗ oben rechts <select data-ecke="1"></select></label>
+          <label>↙ unten links <select data-ecke="2"></select></label>
+          <label>↘ unten rechts <select data-ecke="3"></select></label>
+        </div>
+      </details>
+      <button id="fb-blind-start" class="btn btn-gold fb-breit" type="button">🕶 Blind-Modus starten</button>
+    </section>
+
     <!-- Hauptschalter -->
     <section class="fb-karte fb-schalter-karte">
       <label class="schalter">
@@ -76,12 +92,29 @@
     <section class="fb-karte">
       <div class="fb-karte-kopf">
         <h2>Nächstes Ergebnis</h2>
-        <label class="fb-mini-haken" title="Sonst gilt die Festlegung nur für einen Dreh">
-          <input id="fb-dauerhaft" type="checkbox"> immer
-        </label>
+        <div class="fb-haken-reihe">
+          <label class="fb-mini-haken" title="Antippen legt fest und dreht sofort">
+            <input id="fb-sofort" type="checkbox"> ⚡ sofort
+          </label>
+          <label class="fb-mini-haken" title="Sonst gilt die Festlegung nur für einen Dreh">
+            <input id="fb-dauerhaft" type="checkbox"> immer
+          </label>
+        </div>
       </div>
       <p class="klein fb-hinweis" id="fb-ziel-hinweis">Antippen – das Rad landet beim nächsten Dreh dort. Während es sich dreht, lenkst du es damit live um.</p>
       <div class="fb-chips" id="fb-chips"></div>
+    </section>
+
+    <!-- Reihenfolge -->
+    <section class="fb-karte">
+      <div class="fb-karte-kopf">
+        <h2>Reihenfolge</h2>
+        <button id="fb-reihe-leeren" class="link-btn" type="button">leeren</button>
+      </div>
+      <p class="klein fb-hinweis">Vorher festlegen, wer nacheinander drankommt – jeder Dreh nimmt den nächsten, ohne dass du noch etwas tippen musst. „Nächstes Ergebnis“ hat Vorrang.</p>
+      <ol class="fb-reihe" id="fb-reihe"></ol>
+      <p class="klein fb-reihe-titel">Antippen zum Anhängen:</p>
+      <div class="fb-reihe-namen" id="fb-reihe-namen"></div>
     </section>
 
     <!-- Chancen -->
@@ -104,6 +137,16 @@
       <button id="fb-trennen" class="link-btn" type="button">Dieses Handy abmelden</button>
     </p>
   </main>
+
+  <!-- Blind-Modus: ganzer Bildschirm, vier Ecken zum Ertasten -->
+  <div id="fb-blind" class="fb-blind" hidden>
+    <div class="fb-blind-feld" data-ecke="0"><span></span></div>
+    <div class="fb-blind-feld" data-ecke="1"><span></span></div>
+    <div class="fb-blind-feld" data-ecke="2"><span></span></div>
+    <div class="fb-blind-feld" data-ecke="3"><span></span></div>
+    <span class="fb-blind-punkt" id="fb-blind-punkt" aria-hidden="true"></span>
+    <p class="fb-blind-hilfe" id="fb-blind-hilfe">Ecke antippen = festlegen &amp; drehen · ↑ wischen = drehen · ↓ wischen = zurück</p>
+  </div>
 
   <div id="meldung" class="meldung" role="status" aria-live="polite" popover="manual"></div>
 

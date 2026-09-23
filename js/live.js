@@ -183,6 +183,7 @@
         gewichte,
         naechster: typeof admin.naechster === 'string' ? admin.naechster : '',
         naechsterDauerhaft: !!admin.naechsterDauerhaft,
+        reihenfolge: Array.isArray(admin.reihenfolge) ? admin.reihenfolge.slice(0, Logik.MAX_REIHENFOLGE) : [],
       },
       ...App.liveStand(), // dreh, serie, ergebnis, optionen
       anzahlZiehen: Number(daten.einstellungen.anzahlZiehen) || 1,
@@ -240,8 +241,16 @@
     if (befehl.typ === 'regeln') {
       meldung = regelnAnwenden(befehl.aenderung);
     } else if (befehl.typ === 'drehen') {
-      const text = await App.fernDrehen();
-      if (text) meldung = { text, art: 'fehler' };
+      // Mit `aenderung`: erst festlegen, dann drehen – ein Tipp am Handy. Läuft schon
+      // eine Drehung, wird sie stattdessen umgelenkt.
+      const mitRegeln = istObjekt(befehl.aenderung);
+      if (mitRegeln) meldung = regelnAnwenden(befehl.aenderung);
+      if (!App.dreht) {
+        const text = await App.fernDrehen();
+        if (text) meldung = { text, art: 'fehler' };
+      } else if (!mitRegeln) {
+        meldung = { text: 'Das Rad dreht gerade.', art: 'fehler' };
+      }
     } else if (befehl.typ === 'weiter') {
       App.ergebnisSchliessen();
     } else {
@@ -265,6 +274,7 @@
     if (typeof aenderung.naechster === 'string') admin.naechster = aenderung.naechster.trim().slice(0, MAX_NAME);
     if (typeof aenderung.naechsterDauerhaft === 'boolean') admin.naechsterDauerhaft = aenderung.naechsterDauerhaft;
     if (aenderung.alleNormal === true) admin.gewichte = {};
+    if (Array.isArray(aenderung.reihenfolge)) admin.reihenfolge = Logik.reihenfolgeAendern(admin.reihenfolge, aenderung.reihenfolge);
     if (istObjekt(aenderung.gewichte)) {
       const gewichte = Object.assign({}, admin.gewichte);
       for (const [name, wert] of Object.entries(aenderung.gewichte).slice(0, 500)) {

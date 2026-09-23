@@ -34,14 +34,68 @@
     return typeof g === 'number' && isFinite(g) && g >= 0 ? g : 1;
   }
 
+  /*
+   * Reihenfolge (admin.reihenfolge): vorab festgelegt, wer nacheinander drankommt.
+   * Jeder Dreh nimmt den ersten Eintrag, der gerade gezogen werden kann – einen Namen,
+   * der im Rad steht, oder '' für „Zufall“ (dann gelten die Gewichte). Einträge davor,
+   * die nicht im Rad stehen, werden übersprungen und nach dem Dreh mit gestrichen.
+   */
+  const MAX_REIHENFOLGE = 50;
+
+  /** Der Eintrag der Reihenfolge, der beim nächsten Dreh gilt: { pos, name } oder null. */
+  function reihenfolgeKopf(eintraege, admin) {
+    const liste = admin && Array.isArray(admin.reihenfolge) ? admin.reihenfolge : [];
+    const imRad = new Set(eintraege.map(schluessel));
+    for (let pos = 0; pos < liste.length; pos++) {
+      const name = liste[pos];
+      if (typeof name === 'string' && (name === '' || imRad.has(schluessel(name)))) return { pos, name };
+    }
+    return null;
+  }
+
+  /**
+   * Reihenfolge ändern – als Liste kleiner Schritte, damit sich Handy und Rechner
+   * nicht gegenseitig überschreiben: { plus: name } hängt an ('' = Zufall),
+   * { minus: pos, name } streicht, { leeren: true } leert.
+   */
+  function reihenfolgeAendern(liste, schritte) {
+    let neu = Array.isArray(liste) ? liste.filter((x) => typeof x === 'string') : [];
+    for (const s of Array.isArray(schritte) ? schritte.slice(0, 100) : []) {
+      if (!s || typeof s !== 'object') continue;
+      if (s.leeren === true) {
+        neu = [];
+      } else if (typeof s.plus === 'string') {
+        if (neu.length < MAX_REIHENFOLGE) neu.push(s.plus.trim().slice(0, 100));
+      } else if (Number.isInteger(s.minus) && typeof s.name === 'string') {
+        const k = schluessel(s.name);
+        const pos = s.minus >= 0 && s.minus < neu.length && schluessel(neu[s.minus]) === k
+          ? s.minus
+          : neu.findIndex((n) => schluessel(n) === k);
+        if (pos >= 0) neu.splice(pos, 1);
+      }
+    }
+    return neu;
+  }
+
+  /** Nach dem Dreh: den benutzten Eintrag und übersprungene davor streichen. */
+  function reihenfolgeVerbrauchen(liste, pos, name) {
+    const neu = Array.isArray(liste) ? liste.slice() : [];
+    const k = schluessel(name);
+    const i = pos >= 0 && pos < neu.length && schluessel(neu[pos]) === k ? pos : neu.findIndex((n) => schluessel(n) === k);
+    if (i >= 0) neu.splice(0, i + 1);
+    return neu;
+  }
+
   /**
    * Berechnet die echte Gewinnchance jedes Feldes.
    *
-   * Rückgabe: { wahrscheinlichkeiten: number[], modus }
+   * Rückgabe: { wahrscheinlichkeiten: number[], modus, quelle, reihenfolgePos }
    *   modus = 'fair'       – alle gleich wahrscheinlich
    *           'gewichtet'  – Admin-Gewichte werden angewendet
    *           'erzwungen'  – der nächste Gewinner ist festgelegt
    *           'notfall'    – alle Gewichte 0, deshalb doch fair
+   *   quelle = 'naechster' (festgelegter Gewinner), 'reihenfolge' (Eintrag reihenfolgePos
+   *            der Reihenfolge, auch „Zufall“) oder '' (nur Gewichte)
    *
    * optionen.ausschliessen: Namen, die diesmal nicht gezogen werden sollen
    *   (z. B. der letzte Gewinner bei „nicht zweimal hintereinander“).
@@ -56,43 +110,50 @@
     const summe = p.reduce((a, b) => a + b, 0);
     // Bliebe sonst nichts übrig (z. B. nur ein Eintrag), wird der Ausschluss ignoriert.
     if (summe <= 0) return ergebnis;
-    return { wahrscheinlichkeiten: p.map((w) => w / summe), modus: ergebnis.modus };
+    return Object.assign({}, ergebnis, { wahrscheinlichkeiten: p.map((w) => w / summe) });
   }
 
   /** Chancen nur aus den Admin-Einstellungen (ohne weitere Optionen). */
   function grundAnalyse(eintraege, admin) {
     const n = eintraege.length;
-    if (n === 0) return { wahrscheinlichkeiten: [], modus: 'fair' };
+    const ohneQuelle = { quelle: '', reihenfolgePos: -1 };
+    if (n === 0) return { wahrscheinlichkeiten: [], modus: 'fair', ...ohneQuelle };
 
     const fair = () => eintraege.map(() => 1 / n);
-    if (!admin || !admin.aktiv) return { wahrscheinlichkeiten: fair(), modus: 'fair' };
+    if (!admin || !admin.aktiv) return { wahrscheinlichkeiten: fair(), modus: 'fair', ...ohneQuelle };
+
+    /** Alle Felder mit diesem Namen teilen sich die Chance – oder null, wenn er fehlt. */
+    const erzwingen = (name) => {
+      const ziel = schluessel(name);
+      const treffer = [];
+      eintraege.forEach((eintrag, i) => {
+        if (schluessel(eintrag) === ziel) treffer.push(i);
+      });
+      if (treffer.length === 0) return null;
+      return { wahrscheinlichkeiten: eintraege.map((_, i) => (treffer.includes(i) ? 1 / treffer.length : 0)), modus: 'erzwungen' };
+    };
 
     // 1. Festgelegter nächster Gewinner schlägt alles andere.
-    if (admin.naechster) {
-      const ziel = schluessel(admin.naechster);
-      const treffer = [];
-      eintraege.forEach((name, i) => {
-        if (schluessel(name) === ziel) treffer.push(i);
-      });
-      if (treffer.length > 0) {
-        return {
-          wahrscheinlichkeiten: eintraege.map((_, i) => (treffer.includes(i) ? 1 / treffer.length : 0)),
-          modus: 'erzwungen',
-        };
-      }
-    }
+    const fest = admin.naechster ? erzwingen(admin.naechster) : null;
+    if (fest) return { ...fest, quelle: 'naechster', reihenfolgePos: -1 };
 
-    // 2. Gewichte anwenden.
+    // 2. Nächster Eintrag der Reihenfolge („Zufall“ = weiter mit den Gewichten).
+    const kopf = reihenfolgeKopf(eintraege, admin);
+    const ausReihe = kopf ? { quelle: 'reihenfolge', reihenfolgePos: kopf.pos } : ohneQuelle;
+    if (kopf && kopf.name) return { ...erzwingen(kopf.name), ...ausReihe };
+
+    // 3. Gewichte anwenden.
     const gewichte = eintraege.map((name) => gewichtVon(name, admin));
     const summe = gewichte.reduce((a, b) => a + b, 0);
 
     // Irgendwo muss das Rad stehen bleiben – sind alle gesperrt, wird fair gezogen.
-    if (summe <= 0) return { wahrscheinlichkeiten: fair(), modus: 'notfall' };
+    if (summe <= 0) return { wahrscheinlichkeiten: fair(), modus: 'notfall', ...ausReihe };
 
     const alleGleich = gewichte.every((g) => g === gewichte[0]);
     return {
       wahrscheinlichkeiten: gewichte.map((g) => g / summe),
       modus: alleGleich ? 'fair' : 'gewichtet',
+      ...ausReihe,
     };
   }
 
@@ -101,19 +162,20 @@
    * `zufall` ist austauschbar, damit die Tests reproduzierbar sind.
    */
   function waehleGewinner(eintraege, admin, zufall = Math.random, optionen = {}) {
-    const { wahrscheinlichkeiten, modus } = analyse(eintraege, admin, optionen);
-    if (wahrscheinlichkeiten.length === 0) return { index: -1, modus };
+    const { wahrscheinlichkeiten, modus, quelle, reihenfolgePos } = analyse(eintraege, admin, optionen);
+    const ergebnis = (index) => ({ index, modus, quelle, reihenfolgePos });
+    if (wahrscheinlichkeiten.length === 0) return ergebnis(-1);
 
     let rest = zufall();
     for (let i = 0; i < wahrscheinlichkeiten.length; i++) {
       rest -= wahrscheinlichkeiten[i];
-      if (rest < 0) return { index: i, modus };
+      if (rest < 0) return ergebnis(i);
     }
     // Rundungsfehler: letztes Feld nehmen, das überhaupt eine Chance hat.
     for (let i = wahrscheinlichkeiten.length - 1; i >= 0; i--) {
-      if (wahrscheinlichkeiten[i] > 0) return { index: i, modus };
+      if (wahrscheinlichkeiten[i] > 0) return ergebnis(i);
     }
-    return { index: 0, modus };
+    return ergebnis(0);
   }
 
   /*
@@ -234,6 +296,10 @@
   return {
     VOLLKREIS,
     UMLENKEN_SICHER,
+    MAX_REIHENFOLGE,
+    reihenfolgeKopf,
+    reihenfolgeAendern,
+    reihenfolgeVerbrauchen,
     umlenkSchritte,
     umlenkSchritteSicher,
     schluessel,

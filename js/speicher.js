@@ -42,6 +42,7 @@
     gewichte: {}, // { "7b": 0, "8a": 3 } – Schlüssel siehe Logik.schluessel()
     naechster: '', // Name des festgelegten nächsten Gewinners
     naechsterDauerhaft: false,
+    reihenfolge: [], // vorab festgelegt, wer nacheinander drankommt ('' = Zufall) – siehe Logik
   };
 
   const kopie = (wert) => JSON.parse(JSON.stringify(wert));
