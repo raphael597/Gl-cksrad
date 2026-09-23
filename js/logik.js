@@ -53,19 +53,40 @@
     return null;
   }
 
+  /** Jede Person nur beim ersten Vorkommen behalten („Zufall“ darf mehrfach). */
+  function ohneDoppelte(liste) {
+    const gesehen = new Set();
+    return liste.filter((name) => {
+      if (name === '') return true;
+      const k = schluessel(name);
+      if (gesehen.has(k)) return false;
+      gesehen.add(k);
+      return true;
+    });
+  }
+
   /**
    * Reihenfolge ändern – als Liste kleiner Schritte, damit sich Handy und Rechner
    * nicht gegenseitig überschreiben: { plus: name } hängt an ('' = Zufall),
-   * { minus: pos, name } streicht, { leeren: true } leert.
+   * { minus: pos, name } streicht, { leeren: true } leert, { einmal: true|false }
+   * schaltet „jede Person nur einmal“ (beim Einschalten fallen Doppelte weg).
+   * Nimmt { reihenfolge, reihenfolgeEinmal } und liefert beides neu zurück.
    */
-  function reihenfolgeAendern(liste, schritte) {
-    let neu = Array.isArray(liste) ? liste.filter((x) => typeof x === 'string') : [];
+  function reihenfolgeAendern(regeln, schritte) {
+    const alt = regeln && Array.isArray(regeln.reihenfolge) ? regeln.reihenfolge : [];
+    let neu = alt.filter((x) => typeof x === 'string');
+    let einmal = !!(regeln && regeln.reihenfolgeEinmal === true);
+    const schonDrin = (name) => name !== '' && neu.some((n) => schluessel(n) === schluessel(name));
     for (const s of Array.isArray(schritte) ? schritte.slice(0, 100) : []) {
       if (!s || typeof s !== 'object') continue;
-      if (s.leeren === true) {
+      if (typeof s.einmal === 'boolean') {
+        einmal = s.einmal;
+        if (einmal) neu = ohneDoppelte(neu);
+      } else if (s.leeren === true) {
         neu = [];
       } else if (typeof s.plus === 'string') {
-        if (neu.length < MAX_REIHENFOLGE) neu.push(s.plus.trim().slice(0, 100));
+        const name = s.plus.trim().slice(0, 100);
+        if (neu.length < MAX_REIHENFOLGE && !(einmal && schonDrin(name))) neu.push(name);
       } else if (Number.isInteger(s.minus) && typeof s.name === 'string') {
         const k = schluessel(s.name);
         const pos = s.minus >= 0 && s.minus < neu.length && schluessel(neu[s.minus]) === k
@@ -74,7 +95,7 @@
         if (pos >= 0) neu.splice(pos, 1);
       }
     }
-    return neu;
+    return { reihenfolge: neu, reihenfolgeEinmal: einmal };
   }
 
   /** Nach dem Dreh: den benutzten Eintrag und übersprungene davor streichen. */
@@ -263,6 +284,35 @@
     return bester;
   }
 
+  /**
+   * Blind-Modus der Fernbedienung: Wer steht in welcher Ecke?
+   * `wunsch` = gewählte Person je Ecke (Name, '' = Zufall, null = automatisch),
+   * `zuletzt` = was zuletzt angezeigt wurde. Man tippt nach Gefühl – deshalb ändert sich
+   * nur eine Ecke, deren Person gerade fehlt:
+   *   1. Gewählte Personen, die im Rad stehen, bekommen ihre Ecke (auch nach einer Rückkehr).
+   *   2. Sonst bleibt, wer zuletzt dort stand, solange er noch im Rad ist.
+   *   3. Übrige Ecken bekommen der Reihe nach Namen, die noch in keiner Ecke stehen,
+   *      und wenn keiner mehr übrig ist, „Zufall“ ('').
+   */
+  function eckenBelegen(wunsch, namen, anzahl = 4, zuletzt = []) {
+    const imRad = new Map();
+    for (const n of namen) if (!imRad.has(schluessel(n))) imRad.set(schluessel(n), n);
+    const vergeben = new Set();
+    const nehmen = (name) => {
+      const k = typeof name === 'string' && name !== '' ? schluessel(name) : null;
+      if (k === null || !imRad.has(k) || vergeben.has(k)) return null;
+      vergeben.add(k);
+      return imRad.get(k);
+    };
+    const eintrag = (liste, i) => (Array.isArray(liste) ? liste[i] : null);
+    const belegt = Array.from({ length: anzahl }, (_, i) => (eintrag(wunsch, i) === '' ? '' : nehmen(eintrag(wunsch, i))));
+    belegt.forEach((b, i) => {
+      if (b === null) belegt[i] = nehmen(eintrag(zuletzt, i));
+    });
+    const frei = [...imRad.entries()].filter(([k]) => !vergeben.has(k)).map(([, n]) => n);
+    return belegt.map((b) => (b === null ? frei.shift() || '' : b));
+  }
+
   /*
    * Dasselbe für schrittweise Anzeigen (Roulette-Kugel läuft von Feld zu Feld):
    * Die Kugel steht bei `position` (Felder, mit Nachkommastellen) und hat nach der
@@ -300,6 +350,7 @@
     reihenfolgeKopf,
     reihenfolgeAendern,
     reihenfolgeVerbrauchen,
+    eckenBelegen,
     umlenkSchritte,
     umlenkSchritteSicher,
     schluessel,

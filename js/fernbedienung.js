@@ -158,6 +158,7 @@
         naechster: typeof a.naechster === 'string' ? a.naechster.slice(0, 100) : '',
         naechsterDauerhaft: a.naechsterDauerhaft === true,
         reihenfolge: texte(a.reihenfolge, Logik.MAX_REIHENFOLGE),
+        reihenfolgeEinmal: a.reihenfolgeEinmal === true,
       },
       // Ein zwischengespeicherter Stand kann alt sein – die Drehung darin nicht anzeigen.
       dreh: !ausZwischenspeicher && istObjekt(d) && typeof d.ziel === 'string'
@@ -291,7 +292,7 @@
     if (typeof a.naechster === 'string') neu.naechster = a.naechster;
     if (typeof a.naechsterDauerhaft === 'boolean') neu.naechsterDauerhaft = a.naechsterDauerhaft;
     if (a.alleNormal) neu.gewichte = {};
-    if (Array.isArray(a.reihenfolge)) neu.reihenfolge = Logik.reihenfolgeAendern(admin.reihenfolge, a.reihenfolge);
+    if (Array.isArray(a.reihenfolge)) Object.assign(neu, Logik.reihenfolgeAendern(admin, a.reihenfolge));
     if (a.gewichte) {
       for (const [k, w] of Object.entries(a.gewichte)) {
         if (w === 1) delete neu.gewichte[k];
@@ -343,7 +344,7 @@
 
   // ---------- Anzeige ----------
 
-  const regeln = () => lokal || (stand && stand.admin) || { aktiv: false, gewichte: {}, naechster: '', naechsterDauerhaft: false, reihenfolge: [] };
+  const regeln = () => lokal || (stand && stand.admin) || { aktiv: false, gewichte: {}, naechster: '', naechsterDauerhaft: false, reihenfolge: [], reihenfolgeEinmal: false };
 
   /** Einträge ohne Doppelte, in Rad-Reihenfolge. */
   function eindeutig(eintraege) {
@@ -782,20 +783,29 @@
       liste.appendChild(li);
     });
     $('#fb-reihe-leeren').hidden = a.reihenfolge.length === 0;
+    $('#fb-reihe-einmal').checked = a.reihenfolgeEinmal;
 
     const huelle = $('#fb-reihe-namen');
     const signatur = JSON.stringify(namen);
-    if (huelle.dataset.signatur === signatur) return;
-    huelle.dataset.signatur = signatur;
-    huelle.textContent = '';
-    for (const name of [''].concat(namen)) {
-      const knopf = document.createElement('button');
-      knopf.type = 'button';
-      knopf.className = 'fb-mini-chip';
-      knopf.dataset.name = name;
-      knopf.textContent = name || '🎲 Zufall';
-      huelle.appendChild(knopf);
+    if (huelle.dataset.signatur !== signatur) {
+      huelle.dataset.signatur = signatur;
+      huelle.textContent = '';
+      for (const name of [''].concat(namen)) {
+        const knopf = document.createElement('button');
+        knopf.type = 'button';
+        knopf.className = 'fb-mini-chip';
+        knopf.dataset.name = name;
+        knopf.textContent = name || '🎲 Zufall';
+        huelle.appendChild(knopf);
+      }
     }
+    // „Nur einmal“: wer schon in der Reihenfolge steht, ist ausgegraut
+    const drin = new Set(a.reihenfolge.map(schluessel));
+    huelle.querySelectorAll('.fb-mini-chip').forEach((knopf) => {
+      const schon = a.reihenfolgeEinmal && knopf.dataset.name !== '' && drin.has(schluessel(knopf.dataset.name));
+      knopf.classList.toggle('drin', schon);
+      knopf.setAttribute('aria-disabled', String(schon));
+    });
   }
 
   const reiheAendern = (schritte, aktivieren = false) => {
@@ -812,6 +822,10 @@
       melden(`Höchstens ${Logik.MAX_REIHENFOLGE} Einträge`);
       return;
     }
+    if (knopf.classList.contains('drin')) {
+      melden(`„${knopf.dataset.name}“ steht schon in der Reihenfolge`);
+      return;
+    }
     reiheAendern([{ plus: knopf.dataset.name }], true);
   });
 
@@ -822,43 +836,75 @@
 
   $('#fb-reihe-leeren').addEventListener('click', () => reiheAendern([{ leeren: true }]));
 
+  $('#fb-reihe-einmal').addEventListener('change', (e) => {
+    const vorher = regeln().reihenfolge.length;
+    reiheAendern([{ einmal: e.target.checked }]);
+    const weg = vorher - regeln().reihenfolge.length;
+    if (weg > 0) melden(`${weg} ${weg === 1 ? 'doppelter Eintrag' : 'doppelte Einträge'} entfernt`);
+  });
+
   // ---------- Blind-Modus ----------
 
   const ECKEN = 4;
 
-  /** Belegung der vier Ecken: gespeichert oder – noch frei – die ersten Einträge des Rads. */
-  function ecken(namen) {
+  /** Gespeicherte Wahl je Ecke: Name, '' = Zufall, null = automatisch. */
+  function eckenWunsch() {
     const gespeichert = speicherLesen().ecken;
-    const liste = Array.isArray(gespeichert) ? gespeichert.slice(0, ECKEN) : [];
-    const frei = namen.filter((n) => !liste.some((x) => typeof x === 'string' && schluessel(x) === schluessel(n)));
-    return Array.from({ length: ECKEN }, (_, i) => (typeof liste[i] === 'string' ? liste[i] : frei.shift() || ''));
+    return Array.from({ length: ECKEN }, (_, i) => {
+      const w = Array.isArray(gespeichert) ? gespeichert[i] : null;
+      return typeof w === 'string' ? w.slice(0, 100) : null;
+    });
+  }
+
+  /**
+   * Wer gerade in welcher Ecke steht – nur Namen, die im Rad sind (siehe Logik.eckenBelegen).
+   * Die Standardbelegung wird beim ersten Mal festgehalten: So gehört jede Ecke einer Person
+   * und nur ihre Ecke ändert sich, wenn sie das Rad verlässt.
+   */
+  function ecken(namen) {
+    if (namen.length === 0) return Logik.eckenBelegen(eckenWunsch(), namen, ECKEN);
+    const gespeichert = speicherLesen();
+    if (!Array.isArray(gespeichert.ecken)) {
+      const start = Logik.eckenBelegen(null, namen, ECKEN).map((n) => n || null);
+      speicherSchreiben({ ecken: start });
+    }
+    const belegt = Logik.eckenBelegen(eckenWunsch(), namen, ECKEN, gespeichert.eckenZuletzt);
+    if (JSON.stringify(belegt) !== JSON.stringify(gespeichert.eckenZuletzt)) speicherSchreiben({ eckenZuletzt: belegt });
+    return belegt;
   }
 
   function eckenWahlZeichnen(namen) {
+    const wunsch = eckenWunsch();
     const belegt = ecken(namen);
     document.querySelectorAll('#fb-blind-wahl select').forEach((auswahl) => {
-      const i = Number(auswahl.dataset.ecke);
       if (document.activeElement === auswahl) return;
-      const optionen = [['', '🎲 Zufall (Reihenfolge / Chancen)']].concat(namen.map((n) => [n, n]));
-      const wert = belegt[i];
-      if (wert && !namen.some((n) => schluessel(n) === schluessel(wert))) optionen.push([wert, `${wert} (nicht im Rad)`]);
+      const i = Number(auswahl.dataset.ecke);
+      const w = wunsch[i];
+      const jetzt = belegt[i] || '🎲 Zufall';
+      // Ein gewählter Name, der gerade fehlt (oder schon in einer anderen Ecke steht), wird vertreten.
+      const vertreten = typeof w === 'string' && w !== '' && schluessel(w) !== schluessel(belegt[i]);
+      const optionen = [
+        // Wer jetzt dort steht, kommt zuerst – schmale Auswahlfelder schneiden hinten ab.
+        ['*', vertreten ? `${jetzt} ↻ statt ${w}` : `${jetzt} ↻ automatisch`],
+        ['', '🎲 Zufall (Reihenfolge / Chancen)'],
+      ].concat(namen.map((n) => [n, n]));
       auswahl.textContent = '';
-      for (const [w, t] of optionen) {
+      for (const [wert, text] of optionen) {
         const opt = document.createElement('option');
-        opt.value = w;
-        opt.textContent = t;
+        opt.value = wert;
+        opt.textContent = text;
         auswahl.appendChild(opt);
       }
-      auswahl.value = optionen.find(([w]) => schluessel(w) === schluessel(wert))[0];
+      auswahl.value = w === '' ? '' : w === null || vertreten ? '*' : optionen.find(([wert]) => schluessel(wert) === schluessel(w))[0];
     });
   }
 
   $('#fb-blind-wahl').addEventListener('change', (e) => {
     const auswahl = e.target.closest('select[data-ecke]');
     if (!auswahl) return;
-    const belegt = ecken(stand ? eindeutig(stand.eintraege) : []);
-    belegt[Number(auswahl.dataset.ecke)] = auswahl.value;
-    speicherSchreiben({ ecken: belegt });
+    const wunsch = eckenWunsch();
+    wunsch[Number(auswahl.dataset.ecke)] = auswahl.value === '*' ? null : auswahl.value;
+    speicherSchreiben({ ecken: wunsch });
     zeichnen();
   });
 

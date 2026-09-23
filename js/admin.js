@@ -191,6 +191,9 @@
       liste.appendChild(li);
     });
 
+    const einmal = admin.reihenfolgeEinmal === true;
+    $('#admin-reihe-einmal').checked = einmal;
+    const drin = new Set(reihe.map(Logik.schluessel));
     const auswahl = $('#admin-reihe-name');
     const vorher = auswahl.value;
     auswahl.textContent = '';
@@ -198,9 +201,16 @@
       const opt = document.createElement('option');
       opt.value = wert;
       opt.textContent = beschriftung;
+      // „Nur einmal“: wer schon in der Reihenfolge steht, kann nicht nochmal gewählt werden
+      if (einmal && wert && drin.has(Logik.schluessel(wert))) {
+        opt.disabled = true;
+        opt.textContent += ' ✓';
+      }
       auswahl.appendChild(opt);
     }
-    if ([...auswahl.options].some((o) => o.value === vorher)) auswahl.value = vorher;
+    const erlaubt = [...auswahl.options].filter((o) => !o.disabled);
+    if (erlaubt.some((o) => o.value === vorher)) auswahl.value = vorher;
+    else if (erlaubt.length) auswahl.value = erlaubt[0].value;
   }
 
   function simulieren() {
@@ -291,7 +301,8 @@
     gewichtSetzen(key, jetzt === 0 ? 1 : 0);
   });
 
-  const reiheAendern = (schritte) => aendern((a) => (a.reihenfolge = Logik.reihenfolgeAendern(a.reihenfolge, schritte)));
+  const reiheAendern = (schritte) => aendern((a) => Object.assign(a, Logik.reihenfolgeAendern(a, schritte)));
+  $('#admin-reihe-einmal').addEventListener('change', (e) => reiheAendern([{ einmal: e.target.checked }]));
   $('#admin-reihe-plus').addEventListener('click', () => reiheAendern([{ plus: $('#admin-reihe-name').value }]));
   $('#admin-reihe-leeren').addEventListener('click', () => reiheAendern([{ leeren: true }]));
   $('#admin-reihenfolge').addEventListener('click', (e) => {

@@ -254,17 +254,30 @@ test('Reihenfolge: „Zufall“-Eintrag lässt die Gewichte entscheiden', () => 
 });
 
 test('Reihenfolge ändern: anhängen, streichen, leeren, Grenzen', () => {
-  let liste = Logik.reihenfolgeAendern([], [{ plus: ' 7b ' }, { plus: '' }, { plus: '5a' }, { plus: '7b' }]);
-  assert.deepEqual(liste, ['7b', '', '5a', '7b']);
-  liste = Logik.reihenfolgeAendern(liste, [{ minus: 3, name: '7B' }]);
-  assert.deepEqual(liste, ['7b', '', '5a']);
+  const liste = (regeln, schritte) => Logik.reihenfolgeAendern(regeln, schritte).reihenfolge;
+  let r = { reihenfolge: liste({}, [{ plus: ' 7b ' }, { plus: '' }, { plus: '5a' }, { plus: '7b' }]) };
+  assert.deepEqual(r.reihenfolge, ['7b', '', '5a', '7b']); // mehrfach ist erlaubt, solange „nur einmal“ aus ist
+  r = { reihenfolge: liste(r, [{ minus: 3, name: '7B' }]) };
+  assert.deepEqual(r.reihenfolge, ['7b', '', '5a']);
   // Position passt nicht mehr (z. B. schon verbraucht) → erster passender Name
-  liste = Logik.reihenfolgeAendern(liste, [{ minus: 0, name: '5a' }]);
-  assert.deepEqual(liste, ['7b', '']);
-  assert.deepEqual(Logik.reihenfolgeAendern(liste, [{ leeren: true }, { plus: '8a' }]), ['8a']);
-  assert.deepEqual(Logik.reihenfolgeAendern(['x'], [null, 5, { minus: 'a' }, { plus: 3 }]), ['x']);
-  const voll = Logik.reihenfolgeAendern([], Array.from({ length: 80 }, (_, i) => ({ plus: String(i) })));
+  r = { reihenfolge: liste(r, [{ minus: 0, name: '5a' }]) };
+  assert.deepEqual(r.reihenfolge, ['7b', '']);
+  assert.deepEqual(liste(r, [{ leeren: true }, { plus: '8a' }]), ['8a']);
+  assert.deepEqual(liste({ reihenfolge: ['x'] }, [null, 5, { minus: 'a' }, { plus: 3 }, { einmal: 'ja' }]), ['x']);
+  const voll = liste({}, Array.from({ length: 80 }, (_, i) => ({ plus: String(i) })));
   assert.equal(voll.length, Logik.MAX_REIHENFOLGE);
+});
+
+test('Reihenfolge „jede Person nur einmal“', () => {
+  // Einschalten entfernt vorhandene Doppelte (erstes Vorkommen bleibt), „Zufall“ darf mehrfach
+  let r = Logik.reihenfolgeAendern({ reihenfolge: ['7b', '', '5a', '7B', ''] }, [{ einmal: true }]);
+  assert.deepEqual(r, { reihenfolge: ['7b', '', '5a', ''], reihenfolgeEinmal: true });
+  // Solange es an ist, wird ein Name kein zweites Mal angehängt
+  r = Logik.reihenfolgeAendern(r, [{ plus: '5a' }, { plus: '8a' }, { plus: '' }]);
+  assert.deepEqual(r.reihenfolge, ['7b', '', '5a', '', '8a', '']);
+  // Ausschalten erlaubt wieder Wiederholungen
+  r = Logik.reihenfolgeAendern(r, [{ einmal: false }, { plus: '7b' }]);
+  assert.deepEqual(r, { reihenfolge: ['7b', '', '5a', '', '8a', '', '7b'], reihenfolgeEinmal: false });
 });
 
 test('Reihenfolge verbrauchen: benutzten Eintrag und übersprungene davor streichen', () => {
@@ -274,4 +287,35 @@ test('Reihenfolge verbrauchen: benutzten Eintrag und übersprungene davor streic
   assert.deepEqual(Logik.reihenfolgeVerbrauchen(['5a', '7b', '8a'], 0, '7b'), ['8a']);
   // Inzwischen gelöscht: nichts tun
   assert.deepEqual(Logik.reihenfolgeVerbrauchen(['5a'], 0, '7b'), ['5a']);
+});
+
+// ---------- Blind-Modus: Ecken ----------
+
+test('Blind-Modus: Ecken füllen sich mit den ersten Namen, Zufall bleibt Zufall', () => {
+  assert.deepEqual(Logik.eckenBelegen(null, KLASSEN), ['5a', '5b', '6a', '6b']);
+  assert.deepEqual(Logik.eckenBelegen([null, '', '7B', null], KLASSEN), ['5a', '', '7b', '5b']);
+  assert.deepEqual(Logik.eckenBelegen([], ['Anna', 'Ben']), ['Anna', 'Ben', '', '']);
+});
+
+test('Blind-Modus: wer aus dem Rad entfernt wird, verschwindet aus seiner Ecke – und kommt zurück', () => {
+  const wunsch = ['5a', '5b', '6a', '8b'];
+  const vorher = Logik.eckenBelegen(wunsch, KLASSEN.concat('8b'));
+  assert.deepEqual(vorher, wunsch);
+  // 5b und 8b sind weg → nur ihre Ecken ändern sich, 6a bleibt unten links
+  const ohne = ['5a', '6a', '6b', '7a', '7b', '8a'];
+  const danach = Logik.eckenBelegen(wunsch, ohne, 4, vorher);
+  assert.deepEqual(danach, ['5a', '6b', '6a', '7a']);
+  // Wird auch der Ersatz 6b entfernt, rückt nur in dieser Ecke der nächste nach
+  assert.deepEqual(Logik.eckenBelegen(wunsch, ohne.filter((n) => n !== '6b'), 4, danach), ['5a', '7b', '6a', '7a']);
+  // 5b und 8b wieder im Rad → wieder in ihren Ecken
+  assert.deepEqual(Logik.eckenBelegen(wunsch, KLASSEN.concat('8b'), 4, danach), wunsch);
+  // Nur noch zwei im Rad: der Rest wird Zufall
+  assert.deepEqual(Logik.eckenBelegen(wunsch, ['6a', '7b'], 4, danach), ['7b', '', '6a', '']);
+});
+
+test('Blind-Modus: automatische Ecken bleiben stabil, dieselbe Person nie doppelt', () => {
+  const zuletzt = Logik.eckenBelegen(null, KLASSEN);
+  // 5a verschwindet → nur Ecke 1 bekommt jemand Neues, die anderen rutschen nicht
+  assert.deepEqual(Logik.eckenBelegen(null, KLASSEN.slice(1), 4, zuletzt), ['7a', '5b', '6a', '6b']);
+  assert.deepEqual(Logik.eckenBelegen(['5a', '5a', null, null], ['5a', '5b', '6a']), ['5a', '5b', '6a', '']);
 });

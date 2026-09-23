@@ -184,6 +184,7 @@
         naechster: typeof admin.naechster === 'string' ? admin.naechster : '',
         naechsterDauerhaft: !!admin.naechsterDauerhaft,
         reihenfolge: Array.isArray(admin.reihenfolge) ? admin.reihenfolge.slice(0, Logik.MAX_REIHENFOLGE) : [],
+        reihenfolgeEinmal: admin.reihenfolgeEinmal === true,
       },
       ...App.liveStand(), // dreh, serie, ergebnis, optionen
       anzahlZiehen: Number(daten.einstellungen.anzahlZiehen) || 1,
@@ -274,7 +275,7 @@
     if (typeof aenderung.naechster === 'string') admin.naechster = aenderung.naechster.trim().slice(0, MAX_NAME);
     if (typeof aenderung.naechsterDauerhaft === 'boolean') admin.naechsterDauerhaft = aenderung.naechsterDauerhaft;
     if (aenderung.alleNormal === true) admin.gewichte = {};
-    if (Array.isArray(aenderung.reihenfolge)) admin.reihenfolge = Logik.reihenfolgeAendern(admin.reihenfolge, aenderung.reihenfolge);
+    if (Array.isArray(aenderung.reihenfolge)) Object.assign(admin, Logik.reihenfolgeAendern(admin, aenderung.reihenfolge));
     if (istObjekt(aenderung.gewichte)) {
       const gewichte = Object.assign({}, admin.gewichte);
       for (const [name, wert] of Object.entries(aenderung.gewichte).slice(0, 500)) {

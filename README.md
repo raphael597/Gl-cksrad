@@ -269,13 +269,18 @@ antippen. Jeder Dreh nimmt dann automatisch den nächsten Eintrag – egal, ob a
 Leertaste) oder vom Handy gedreht wird; auch bei mehreren Gewinnern zählt jede Ziehung einzeln.
 Ein festgelegtes „Nächstes Ergebnis“ hat Vorrang und verbraucht keinen Eintrag der Reihenfolge.
 Steht ein Eintrag gerade nicht im Rad (z. B. schon gezogen und entfernt), wird er übersprungen.
-Ist die Liste leer, gelten wieder die Chancen. Die Reihenfolge lässt sich auch im Admin-Bereich
-am Rechner bearbeiten.
+Ist die Liste leer, gelten wieder die Chancen. Mit **„Jede Person nur einmal“** kann niemand
+doppelt in die Reihenfolge (beim Einschalten fallen vorhandene Doppelte weg, „🎲 Zufall“ darf
+mehrfach vorkommen); ausgeschaltet darf dieselbe Person mehrmals drankommen. Die Reihenfolge und
+der Schalter lassen sich auch im Admin-Bereich am Rechner bearbeiten.
 
 **🕶 Blind-Modus – ohne hinzusehen:** Ein fast schwarzer Vollbildschirm mit vier großen Feldern
 in den Ecken, die man mit dem Daumen ertasten kann. Welcher Name in welcher Ecke liegt, stellst du
 unter „Ecken belegen“ ein (Standard: die ersten vier Einträge; „🎲 Zufall“ = nach Reihenfolge bzw.
-Chancen).
+Chancen). Die Ecken passen sich an: Wird jemand aus dem Rad entfernt, rückt **nur in seiner Ecke**
+der nächste freie Name nach – die anderen Ecken bleiben, wo sie sind, damit man weiter blind tippen
+kann. Kommt die Person zurück ins Rad, bekommt sie ihre Ecke wieder. Im Auswahlfeld steht dann z. B.
+„6b ↻ statt 5b“.
 
 | Geste | Wirkung |
 | --- | --- |
