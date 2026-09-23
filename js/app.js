@@ -67,24 +67,37 @@
 
   /** Text in die Zwischenablage – mit Rückfall für ältere Browser. */
   async function kopieren(text) {
+    // execCommand muss synchron zum Klick laufen. In einem modalen Dialog muss
+    // das Kopierfeld außerdem innerhalb des Dialogs liegen (Safari/iOS).
+    const feld = document.createElement('textarea');
+    feld.value = text;
+    feld.setAttribute('readonly', '');
+    feld.style.position = 'fixed';
+    feld.style.top = '0';
+    feld.style.left = '0';
+    feld.style.width = '1px';
+    feld.style.height = '1px';
+    feld.style.opacity = '0';
+    const dialog = document.querySelector('dialog[open]');
+    const fokusVorher = document.activeElement;
+    (dialog || document.body).appendChild(feld);
+    feld.focus();
+    feld.select();
+    feld.setSelectionRange(0, text.length);
     try {
+      if (document.execCommand('copy')) return true;
+    } catch (e) {
+      // Einige Browser unterstützen execCommand nicht mehr.
+    } finally {
+      feld.remove();
+      if (fokusVorher && typeof fokusVorher.focus === 'function') fokusVorher.focus();
+    }
+    try {
+      if (!navigator.clipboard?.writeText) return false;
       await navigator.clipboard.writeText(text);
       return true;
     } catch (e) {
-      const feld = document.createElement('textarea');
-      feld.value = text;
-      feld.style.position = 'fixed';
-      feld.style.opacity = '0';
-      document.body.appendChild(feld);
-      feld.select();
-      let ok = false;
-      try {
-        ok = document.execCommand('copy');
-      } catch (e2) {
-        ok = false;
-      }
-      feld.remove();
-      return ok;
+      return false;
     }
   }
 

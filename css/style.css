@@ -1659,6 +1659,12 @@ code {
   color: var(--gedimmt);
 }
 
+.admin-link-feld {
+  min-height: 80px;
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
 .modus {
   margin: 10px 0 0;
   padding: 10px 12px;

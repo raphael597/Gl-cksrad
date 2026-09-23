@@ -247,13 +247,30 @@
   $('#admin-alle-normal').addEventListener('click', () => aendern((a) => (a.gewichte = {})));
 
   $('#admin-schummel-link').addEventListener('click', async () => {
+    const info = $('#admin-link-info');
+    const ausgabe = $('#admin-link-ausgabe');
+    const feld = $('#admin-link-text');
+    let link;
     try {
       const paket = Paket.schummelLinkErstellen(App.daten, Speicher.ladeAdmin());
-      const link = `${location.href.split('#')[0]}#schummel=${Paket.kodieren(paket)}`;
-      if (await App.kopieren(link)) App.melden('Schummel-Link kopiert');
-      else prompt('Schummel-Link zum Kopieren:', link);
+      link = `${location.href.split('#')[0]}#schummel=${Paket.kodieren(paket)}`;
     } catch (e) {
-      App.melden('Für den Link braucht das Rad 1–500 Einträge mit höchstens 100 Zeichen');
+      ausgabe.hidden = true;
+      info.textContent = 'Für den Link braucht das Rad 1–500 Einträge mit höchstens 100 Zeichen.';
+      return;
+    }
+    feld.value = link;
+    ausgabe.hidden = false;
+    let kopiert = false;
+    try {
+      kopiert = await App.kopieren(link);
+    } catch (e) {
+      // Der Link bleibt im Dialog zum manuellen Kopieren verfügbar.
+    }
+    info.textContent = kopiert ? 'Link kopiert.' : 'Automatisches Kopieren nicht möglich. Link unten markieren und kopieren.';
+    if (!kopiert) {
+      feld.focus();
+      feld.select();
     }
   });
 
