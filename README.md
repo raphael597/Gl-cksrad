@@ -209,9 +209,11 @@ Nach dem Entsperren bleibt der Bereich bis zum Schließen des Tabs offen; „�
 - **Chance / Simuliert**: zeigt die echten Wahrscheinlichkeiten. „1000× simulieren“
   probiert sie aus, ohne dass das Rad sich dreht.
 
-Schummel-Links funktionieren über verschiedene Geräte nur mit einer online erreichbaren
-Webadresse. Die Regeln stehen kodiert im Link und sind für technisch versierte Empfänger lesbar
-und veränderbar. Die Seite hat keinen Server, der den Link geheim halten oder signieren könnte.
+Neue Links verwenden die kurze, neutrale Form `#r=…`; bisherige `#schummel=…`-Links
+funktionieren weiterhin. Schummel-Links funktionieren über verschiedene Geräte nur mit einer
+online erreichbaren Webadresse. Die Regeln stehen weiterhin kodiert im Link und sind für technisch
+versierte Empfänger lesbar und veränderbar. Die Seite hat keinen Server, der den Link geheim halten,
+signieren oder durch einen beliebig kurzen Code ersetzen könnte.
 Normale Listen- und Sicherungs-Links übernehmen weiterhin keine Admin-Regeln.
 
 Die Regeln hängen am **Namen** des Eintrags (Groß-/Kleinschreibung egal). Wenn du also „7b“

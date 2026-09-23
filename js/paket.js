@@ -190,6 +190,114 @@
     };
   }
 
+  /**
+   * Kompaktes, versioniertes Link-Format: UTF-8-Texte und Zahlen statt JSON-Feldnamen.
+   * Gewichte und der nächste Gewinner verweisen auf die Eintragsliste. Die Daten
+   * sind nur kodiert, nicht verschlüsselt oder gegen Änderungen geschützt.
+   */
+  function schummelKurzKodieren(roh) {
+    const paket = schummelLinkPruefen(roh);
+    const bytes = [2, (paket.admin.aktiv ? 1 : 0) | (paket.admin.naechsterDauerhaft ? 2 : 0)];
+    const zahl = (wert) => {
+      do {
+        bytes.push((wert & 127) | (wert >= 128 ? 128 : 0));
+        wert = Math.floor(wert / 128);
+      } while (wert);
+    };
+    const wort = (wert) => {
+      const utf8 = new TextEncoder().encode(wert);
+      zahl(utf8.length);
+      bytes.push(...utf8);
+    };
+    wort(paket.titel);
+    zahl(paket.eintraege.length);
+    paket.eintraege.forEach(wort);
+
+    const index = new Map(paket.eintraege.map((name, i) => [name.toLowerCase(), i]));
+    const gewichte = Object.entries(paket.admin.gewichte).filter(([, wert]) => wert !== 1);
+    zahl(gewichte.length);
+    gewichte.forEach(([name, wert]) => {
+      zahl(index.get(name));
+      bytes.push(wert);
+    });
+    zahl(paket.admin.naechster ? index.get(paket.admin.naechster.toLowerCase()) + 1 : 0);
+
+    let binaer = '';
+    bytes.forEach((b) => (binaer += String.fromCharCode(b)));
+    return btoa(binaer).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  /** Kompakten Link lesen; Grenzwerte und Restbytes strikt prüfen. */
+  function schummelKurzDekodieren(text) {
+    if (typeof text !== 'string' || !/^[A-Za-z0-9_-]+$/.test(text) || text.length > 340000) {
+      throw new Error('Kein gültiger Rad-Link');
+    }
+    let binaer;
+    try {
+      binaer = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
+    } catch (e) {
+      throw new Error('Kein gültiger Rad-Link');
+    }
+    if (binaer.length > 250000) throw new Error('Rad-Link ist zu lang');
+    const bytes = Uint8Array.from(binaer, (z) => z.charCodeAt(0));
+    let pos = 0;
+    const byte = () => {
+      if (pos >= bytes.length) throw new Error('Unvollständiger Rad-Link');
+      return bytes[pos++];
+    };
+    const zahl = () => {
+      let wert = 0;
+      for (let i = 0; i < 4; i++) {
+        const teil = byte();
+        wert += (teil & 127) * (2 ** (i * 7));
+        if (!(teil & 128)) return wert;
+      }
+      throw new Error('Ungültige Zahl im Rad-Link');
+    };
+    const wort = (max) => {
+      const laenge = zahl();
+      if (laenge > max || pos + laenge > bytes.length) throw new Error('Ungültiger Text im Rad-Link');
+      const wert = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(pos, pos + laenge));
+      pos += laenge;
+      return wert;
+    };
+
+    if (byte() !== 2) throw new Error('Unbekannte Rad-Link-Version');
+    const flags = byte();
+    if (flags & ~3) throw new Error('Ungültige Regeln im Rad-Link');
+    const titel = wort(MAX_TITEL * 4);
+    const anzahl = zahl();
+    if (anzahl < 1 || anzahl > MAX_EINTRAEGE) throw new Error('Ungültige Eintragszahl im Rad-Link');
+    const eintraege = Array.from({ length: anzahl }, () => wort(MAX_LAENGE * 4));
+    const gewichtAnzahl = zahl();
+    if (gewichtAnzahl > anzahl) throw new Error('Zu viele Gewichte im Rad-Link');
+    const gewichte = [];
+    const gesehen = new Set();
+    for (let i = 0; i < gewichtAnzahl; i++) {
+      const index = zahl();
+      const wert = byte();
+      if (index >= anzahl || wert > 10 || gesehen.has(eintraege[index].toLowerCase())) {
+        throw new Error('Ungültiges Gewicht im Rad-Link');
+      }
+      gesehen.add(eintraege[index].toLowerCase());
+      gewichte.push([eintraege[index].toLowerCase(), wert]);
+    }
+    const naechsterIndex = zahl();
+    if (naechsterIndex > anzahl || pos !== bytes.length) throw new Error('Ungültiges Ende des Rad-Links');
+    return schummelLinkPruefen({
+      typ: SCHUMMEL_TYP,
+      v: VERSION,
+      titel,
+      eintraege,
+      admin: {
+        aktiv: !!(flags & 1),
+        gewichte: Object.fromEntries(gewichte),
+        naechster: naechsterIndex ? eintraege[naechsterIndex - 1] : '',
+        naechsterDauerhaft: !!(flags & 2),
+      },
+    });
+  }
+
   /** Regeln des verlinkten Rads ersetzen, andere Gewichte und die lokale PIN behalten. */
   function adminRegelnUebernehmen(bisher, paket) {
     const namen = new Set(paket.eintraege.map((name) => name.toLowerCase()));
@@ -203,6 +311,7 @@
 
   return {
     kodieren, dekodieren, eintraegePruefen, sicherungErstellen, sicherungPruefen, beschreiben,
-    schummelLinkErstellen, schummelLinkPruefen, adminRegelnUebernehmen,
+    schummelLinkErstellen, schummelLinkPruefen, schummelKurzKodieren,
+    schummelKurzDekodieren, adminRegelnUebernehmen,
   };
 });
