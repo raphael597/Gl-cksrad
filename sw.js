@@ -23,6 +23,7 @@ const DATEIEN = [
   'js/paket.js',
   'js/effekte.js',
   'js/rad.js',
+  'js/spiele.js',
   'js/admin.js',
   'js/app.js',
   'js/einstellungen.js',
