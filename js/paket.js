@@ -4,7 +4,8 @@
  *   - kodieren/dekodieren: JSON ⇄ Base64url, damit es in einen Link passt
  *   - Sicherung: aktuelles Rad, gespeicherte Räder und Einstellungen – für ein
  *     anderes Gerät oder als Backup, ausdrücklich ohne Admin, PIN und Verlauf.
- *   - Schummel-Link: aktuelles Rad und Admin-Regeln, aber niemals die PIN.
+ *   - Schummel-Link: aktuelles Rad, Spiel-Einstellungen und Admin-Regeln,
+ *     aber niemals die PIN.
  *
  * Alles, was aus einem Link oder einer Datei kommt, ist fremde Eingabe und wird
  * streng geprüft, bevor es irgendwo landet.
@@ -19,10 +20,22 @@
   const VERSION = 1;
   const TYP = 'gluecksrad-sicherung';
   const SCHUMMEL_TYP = 'gluecksrad-schummel-link';
+  const SCHUMMEL_VERSION = 2;
   const MAX_EINTRAEGE = 500;
   const MAX_LAENGE = 100;
   const MAX_RAEDER = 100;
   const MAX_TITEL = 60;
+  const LINK_ENUMS = {
+    dauer: ['kurz', 'normal', 'lang'],
+    farben: ['bunt', 'pastell', 'neon', 'ozean', 'herbst'],
+    design: ['dunkel', 'hell', 'system'],
+    spielart: ['rad', 'slot', 'roulette'],
+  };
+  const LINK_VORGABEN = {
+    dauer: 'normal', farben: 'bunt', design: 'dunkel', spielart: 'rad',
+    autoEntfernen: false, konfetti: true, vorlesen: false, nichtDoppelt: false,
+    anzahlZiehen: 1, ergebnisText: 'Das Rad hat entschieden:', nabeText: 'DREH!',
+  };
 
   // ---------- Base64url ----------
 
@@ -127,33 +140,36 @@
   // ---------- Schummel-Link ----------
 
   /**
-   * Ein eigener Link-Typ: nur aktuelles Rad und wirksame Admin-Regeln.
-   * Die PIN und Regeln für andere Räder gehören nicht in einen geteilten Link.
+   * Aktuelles Rad, Spiel-Einstellungen und wirksame Admin-Regeln.
+   * PIN, Verlauf und gespeicherte Räder gehören nicht in einen geteilten Link.
    */
   function schummelLinkErstellen(daten, admin) {
     const namen = new Set(daten.eintraege.map((name) => String(name).trim().toLowerCase()));
     const gewichte = Object.fromEntries(
       Object.entries(admin.gewichte || {}).filter(([name]) => namen.has(name))
     );
-    const naechster = namen.has(String(admin.naechster || '').trim().toLowerCase())
-      ? admin.naechster : '';
+    const naechster = admin.naechster || '';
     return schummelLinkPruefen({
       typ: SCHUMMEL_TYP,
-      v: VERSION,
+      v: SCHUMMEL_VERSION,
       titel: daten.titel,
       eintraege: daten.eintraege,
+      einstellungen: { ...LINK_VORGABEN, ...daten.einstellungen },
+      ton: daten.ton !== false,
       admin: {
         aktiv: admin.aktiv,
         gewichte,
         naechster,
         naechsterDauerhaft: admin.naechsterDauerhaft,
+        reihenfolge: admin.reihenfolge || [],
+        reihenfolgeEinmal: admin.reihenfolgeEinmal === true,
       },
     });
   }
 
   /** Fremde Link-Daten streng prüfen und nur die erlaubten Felder zurückgeben. */
   function schummelLinkPruefen(roh) {
-    if (!istObjekt(roh) || roh.typ !== SCHUMMEL_TYP || roh.v !== VERSION ||
+    if (!istObjekt(roh) || roh.typ !== SCHUMMEL_TYP || ![VERSION, SCHUMMEL_VERSION].includes(roh.v) ||
         typeof roh.titel !== 'string' || roh.titel.length > MAX_TITEL ||
         !Array.isArray(roh.eintraege) || roh.eintraege.length < 1 || roh.eintraege.length > MAX_EINTRAEGE ||
         !roh.eintraege.every((name) => typeof name === 'string' && name.trim() && name.length <= MAX_LAENGE) ||
@@ -172,20 +188,59 @@
       }
       return [name, wert];
     }));
+    const neu = roh.v === SCHUMMEL_VERSION;
     const naechster = roh.admin.naechster.trim();
-    if (naechster && !namen.has(naechster.toLowerCase())) {
+    if (naechster.length > MAX_LAENGE || (naechster && !neu && !namen.has(naechster.toLowerCase()))) {
       throw new Error('Festgelegter Gewinner fehlt im Rad');
+    }
+    let reihenfolge;
+    let einstellungen;
+    if (neu) {
+      if (!Array.isArray(roh.admin.reihenfolge) || roh.admin.reihenfolge.length > 50 ||
+          !roh.admin.reihenfolge.every((name) => typeof name === 'string' &&
+            name.length <= MAX_LAENGE && name === name.trim()) ||
+          typeof roh.admin.reihenfolgeEinmal !== 'boolean') {
+        throw new Error('Ungültige Reihenfolge im Schummel-Link');
+      }
+      reihenfolge = roh.admin.reihenfolge.slice();
+      if (roh.admin.reihenfolgeEinmal) {
+        const personen = reihenfolge.filter(Boolean).map((name) => name.toLowerCase());
+        if (new Set(personen).size !== personen.length) throw new Error('Doppelte Reihenfolge im Schummel-Link');
+      }
+      if (!istObjekt(roh.einstellungen) || typeof roh.ton !== 'boolean') {
+        throw new Error('Ungültige Spiel-Einstellungen im Schummel-Link');
+      }
+      einstellungen = {};
+      for (const [feld, werte] of Object.entries(LINK_ENUMS)) {
+        if (!werte.includes(roh.einstellungen[feld])) throw new Error('Ungültige Spiel-Einstellungen im Schummel-Link');
+        einstellungen[feld] = roh.einstellungen[feld];
+      }
+      for (const feld of ['autoEntfernen', 'konfetti', 'vorlesen', 'nichtDoppelt']) {
+        if (typeof roh.einstellungen[feld] !== 'boolean') throw new Error('Ungültige Spiel-Einstellungen im Schummel-Link');
+        einstellungen[feld] = roh.einstellungen[feld];
+      }
+      if (!Number.isInteger(roh.einstellungen.anzahlZiehen) ||
+          roh.einstellungen.anzahlZiehen < 1 || roh.einstellungen.anzahlZiehen > 10 ||
+          typeof roh.einstellungen.ergebnisText !== 'string' || roh.einstellungen.ergebnisText.length > MAX_TITEL ||
+          typeof roh.einstellungen.nabeText !== 'string' || roh.einstellungen.nabeText.length > 10) {
+        throw new Error('Ungültige Spiel-Einstellungen im Schummel-Link');
+      }
+      einstellungen.anzahlZiehen = roh.einstellungen.anzahlZiehen;
+      einstellungen.ergebnisText = roh.einstellungen.ergebnisText;
+      einstellungen.nabeText = roh.einstellungen.nabeText;
     }
     return {
       typ: SCHUMMEL_TYP,
-      v: VERSION,
+      v: roh.v,
       titel: roh.titel.trim(),
       eintraege,
+      ...(neu ? { einstellungen, ton: roh.ton } : {}),
       admin: {
         aktiv: roh.admin.aktiv,
         gewichte,
         naechster,
         naechsterDauerhaft: roh.admin.naechsterDauerhaft,
+        ...(neu ? { reihenfolge, reihenfolgeEinmal: roh.admin.reihenfolgeEinmal } : {}),
       },
     };
   }
@@ -197,7 +252,18 @@
    */
   function schummelKurzKodieren(roh) {
     const paket = schummelLinkPruefen(roh);
-    const bytes = [2, (paket.admin.aktiv ? 1 : 0) | (paket.admin.naechsterDauerhaft ? 2 : 0)];
+    if (paket.v !== SCHUMMEL_VERSION) throw new Error('Altes Link-Format kann nicht neu erzeugt werden');
+    const e = paket.einstellungen;
+    const flags =
+      (paket.admin.aktiv ? 1 : 0) |
+      (paket.admin.naechsterDauerhaft ? 2 : 0) |
+      (paket.admin.reihenfolgeEinmal ? 4 : 0) |
+      (paket.ton ? 8 : 0) |
+      (e.autoEntfernen ? 16 : 0) |
+      (e.konfetti ? 32 : 0) |
+      (e.vorlesen ? 64 : 0) |
+      (e.nichtDoppelt ? 128 : 0);
+    const bytes = [3, flags];
     const zahl = (wert) => {
       do {
         bytes.push((wert & 127) | (wert >= 128 ? 128 : 0));
@@ -220,7 +286,32 @@
       zahl(index.get(name));
       bytes.push(wert);
     });
-    zahl(paket.admin.naechster ? index.get(paket.admin.naechster.toLowerCase()) + 1 : 0);
+    // 0 = kein Gewinner, 1..n = Eintrag; n+1 = ein derzeit fehlender Name.
+    const genauerIndex = new Map(paket.eintraege.map((name, i) => [name, i]));
+    if (!paket.admin.naechster) zahl(0);
+    else if (genauerIndex.has(paket.admin.naechster)) zahl(genauerIndex.get(paket.admin.naechster) + 1);
+    else {
+      zahl(paket.eintraege.length + 1);
+      wort(paket.admin.naechster);
+    }
+
+    // Dieselben Codes für die geplante Reihenfolge; 0 steht dort für Zufall.
+    zahl(paket.admin.reihenfolge.length);
+    for (const name of paket.admin.reihenfolge) {
+      if (name === '') zahl(0);
+      else if (genauerIndex.has(name)) zahl(genauerIndex.get(name) + 1);
+      else {
+        zahl(paket.eintraege.length + 1);
+        wort(name);
+      }
+    }
+    for (const [feld, werte] of Object.entries(LINK_ENUMS)) bytes.push(werte.indexOf(e[feld]));
+    bytes.push(e.anzahlZiehen);
+    const textFlags = (e.ergebnisText !== LINK_VORGABEN.ergebnisText ? 1 : 0) |
+      (e.nabeText !== LINK_VORGABEN.nabeText ? 2 : 0);
+    bytes.push(textFlags);
+    if (textFlags & 1) wort(e.ergebnisText);
+    if (textFlags & 2) wort(e.nabeText);
 
     let binaer = '';
     bytes.forEach((b) => (binaer += String.fromCharCode(b)));
@@ -262,9 +353,10 @@
       return wert;
     };
 
-    if (byte() !== 2) throw new Error('Unbekannte Rad-Link-Version');
+    const format = byte();
+    if (format !== 2 && format !== 3) throw new Error('Unbekannte Rad-Link-Version');
     const flags = byte();
-    if (flags & ~3) throw new Error('Ungültige Regeln im Rad-Link');
+    if (format === 2 && flags & ~3) throw new Error('Ungültige Regeln im Rad-Link');
     const titel = wort(MAX_TITEL * 4);
     const anzahl = zahl();
     if (anzahl < 1 || anzahl > MAX_EINTRAEGE) throw new Error('Ungültige Eintragszahl im Rad-Link');
@@ -283,17 +375,50 @@
       gewichte.push([eintraege[index].toLowerCase(), wert]);
     }
     const naechsterIndex = zahl();
-    if (naechsterIndex > anzahl || pos !== bytes.length) throw new Error('Ungültiges Ende des Rad-Links');
+    if (naechsterIndex > anzahl + (format === 3 ? 1 : 0)) throw new Error('Ungültiger Gewinner im Rad-Link');
+    const naechster = format === 3 && naechsterIndex === anzahl + 1
+      ? wort(MAX_LAENGE * 4)
+      : naechsterIndex ? eintraege[naechsterIndex - 1] : '';
+    let reihenfolge;
+    let einstellungen;
+    if (format === 3) {
+      const anzahlReihe = zahl();
+      if (anzahlReihe > 50) throw new Error('Zu lange Reihenfolge im Rad-Link');
+      reihenfolge = [];
+      for (let i = 0; i < anzahlReihe; i++) {
+        const code = zahl();
+        if (code > anzahl + 1) throw new Error('Ungültige Reihenfolge im Rad-Link');
+        reihenfolge.push(code === 0 ? '' : code === anzahl + 1 ? wort(MAX_LAENGE * 4) : eintraege[code - 1]);
+      }
+      einstellungen = {};
+      for (const [feld, werte] of Object.entries(LINK_ENUMS)) {
+        const index = byte();
+        if (index >= werte.length) throw new Error('Ungültige Spiel-Einstellungen im Rad-Link');
+        einstellungen[feld] = werte[index];
+      }
+      einstellungen.anzahlZiehen = byte();
+      const textFlags = byte();
+      if (textFlags & ~3) throw new Error('Ungültige Texte im Rad-Link');
+      einstellungen.ergebnisText = textFlags & 1 ? wort(MAX_TITEL * 4) : LINK_VORGABEN.ergebnisText;
+      einstellungen.nabeText = textFlags & 2 ? wort(40) : LINK_VORGABEN.nabeText;
+      einstellungen.autoEntfernen = !!(flags & 16);
+      einstellungen.konfetti = !!(flags & 32);
+      einstellungen.vorlesen = !!(flags & 64);
+      einstellungen.nichtDoppelt = !!(flags & 128);
+    }
+    if (pos !== bytes.length) throw new Error('Ungültiges Ende des Rad-Links');
     return schummelLinkPruefen({
       typ: SCHUMMEL_TYP,
-      v: VERSION,
+      v: format === 3 ? SCHUMMEL_VERSION : VERSION,
       titel,
       eintraege,
+      ...(format === 3 ? { einstellungen, ton: !!(flags & 8) } : {}),
       admin: {
         aktiv: !!(flags & 1),
         gewichte: Object.fromEntries(gewichte),
-        naechster: naechsterIndex ? eintraege[naechsterIndex - 1] : '',
+        naechster,
         naechsterDauerhaft: !!(flags & 2),
+        ...(format === 3 ? { reihenfolge, reihenfolgeEinmal: !!(flags & 4) } : {}),
       },
     });
   }
@@ -305,6 +430,8 @@
     return {
       ...bisher,
       ...paket.admin,
+      reihenfolge: paket.admin.reihenfolge || [],
+      reihenfolgeEinmal: paket.admin.reihenfolgeEinmal === true,
       gewichte: Object.fromEntries(andereGewichte.concat(Object.entries(paket.admin.gewichte))),
     };
   }

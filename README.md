@@ -229,9 +229,10 @@ Nach dem Entsperren bleibt der Bereich bis zum Schließen des Tabs offen; „�
 - **Nächstes Ergebnis festlegen**: Das Rad landet garantiert auf diesem Eintrag,
   entweder nur beim nächsten Dreh oder (mit „dauerhaft“) bei jedem Dreh.
   Das schlägt die Gewichtung.
-- **Schummel-Link kopieren**: erstellt einen Link aus aktuellem Titel, Einträgen, Aktiv-Schalter,
-  Gewichten und festgelegtem Gewinner. Wer ihn öffnet, bekommt Rad und Regeln automatisch in
-  seinen Browser übernommen. Die PIN, gespeicherte Räder und der Verlauf bleiben lokal. Die
+- **Schummel-Link kopieren**: erstellt einen Link aus aktuellem Titel, Einträgen in ihrer Reihenfolge,
+  allen Spiel-Einstellungen, Ton, Aktiv-Schalter, Gewichten, festgelegtem Gewinner und der
+  geplanten Gewinner-Reihenfolge einschließlich „Nur einmal“. Wer ihn öffnet, bekommt das alles
+  automatisch in seinen Browser übernommen. Die PIN, gespeicherte Räder und der Verlauf bleiben lokal. Die
   Regeln gelten beim Empfänger danach auch für weitere Drehungen. Ein einmalig festgelegter
   Gewinner wird dort nach dem ersten Dreh verbraucht.
 - **Chance / Simuliert**: zeigt die echten Wahrscheinlichkeiten. „1000× simulieren“

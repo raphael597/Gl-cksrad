@@ -147,7 +147,20 @@ test('ungültige Anfragen werden abgelehnt', async () => {
     assert.equal((await senden(basis, RAUM, 'zustand', '{kaputt')).status, 400);
     assert.equal((await senden(basis, RAUM, 'zustand', '[1,2]')).status, 400);
     assert.equal((await senden(basis, RAUM, 'zustand', '{}', 'text/plain')).status, 415);
-    assert.equal((await senden(basis, RAUM, 'zustand', { x: 'y'.repeat(600 * 1024) })).status, 413);
+    // Nur die Größe ankündigen: Der Server antwortet schon anhand des Headers
+    // mit 413 und schließt die Verbindung, bevor ein großer Körper gesendet wird.
+    const zuGross = await new Promise((fertig, fehler) => {
+      const req = http.request(`${basis}/api/live/${RAUM}/zustand`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': 600 * 1024 },
+      }, (res) => {
+        res.resume();
+        res.on('end', () => fertig(res.statusCode));
+      });
+      req.on('error', fehler);
+      req.end();
+    });
+    assert.equal(zuGross, 413);
     const falscheRolle = await new Promise((fertig) => http.get(`${basis}/api/live/${RAUM}/ereignisse?rolle=chef`, fertig));
     assert.equal(falscheRolle.statusCode, 400);
     falscheRolle.resume();

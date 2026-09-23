@@ -239,11 +239,11 @@
       const paket = treffer[1] === 'r'
         ? Paket.schummelKurzDekodieren(treffer[2])
         : Paket.schummelLinkPruefen(Paket.dekodieren(treffer[2]));
-      // Die Empfänger-PIN bleibt erhalten; nur die Regeln dieses Links gelten.
+      // Die Empfänger-PIN bleibt erhalten; Rad, Ansicht und Regeln kommen aus dem Link.
       const bisher = Speicher.ladeAdmin();
-      App.radLaden(paket.titel, paket.eintraege);
       Speicher.speichereAdmin(Paket.adminRegelnUebernehmen(bisher, paket));
-      Admin.aktualisieren();
+      App.schummelLinkEinspielen(paket);
+      App.regelnGeaendert();
       App.melden('Geteiltes Rad geladen');
     } catch (e) {
       App.melden('Der Link ist ungültig');
