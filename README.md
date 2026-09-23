@@ -25,6 +25,7 @@ python3 -m http.server 8000
 | Einträge bearbeiten | Rechts im Textfeld, ein Eintrag pro Zeile |
 | Titel des Rads | Über dem Rad direkt hineinklicken und tippen |
 | Drehen | „Rad drehen“, auf die Mitte klicken oder **Leertaste** |
+| Mehrere Gewinner | Neben „Rad drehen“ die Anzahl wählen (1–10) – das Rad zieht nacheinander, niemand doppelt |
 | Gewinner entfernen | Im Ergebnis-Fenster „Aus dem Rad entfernen“ (oder automatisch, siehe Einstellungen) |
 | Entfernte zurückholen | Knopf „↩ … zurückholen“ unter den Einträgen |
 | Vollbild (z. B. für den Beamer) | ⛶ oben rechts oder **F** – zeigt dann nur das Rad |
@@ -37,6 +38,14 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
   mit einem Klick wechseln, löschen oder ein neues leeres Rad anlegen.
 - **👥 Teams**: verteilt alle Einträge zufällig auf eine Anzahl Teams oder auf Teams mit
   fester Größe; Ergebnis als Text kopierbar.
+- **🧰 Werkzeuge**:
+  - **Timer** mit Vorgaben (30 s – 10 min) oder eigener Zeit, Pause, Signalton; läuft weiter,
+    wenn das Fenster zu ist, und zeigt die Restzeit oben in der Kopfzeile
+  - **Würfel** (1–6 Stück, mit Summe), **Münzwurf** (mit Bilanz),
+    **Zufallszahl** von–bis (auch ohne Wiederholung)
+  - aus dem Ergebnis-Fenster direkt per „⏱ Timer“ erreichbar (z. B. Redezeit für den Gewinner)
+- **🏆 Mehrere Gewinner**: z. B. 3 Referenten auf einmal ziehen; Gewinner verlassen das Rad,
+  am Ende gibt es eine nummerierte Liste (kopierbar, „Alle zurück ins Rad“).
 - **📊 Statistik**: wie oft wurde wer gezogen (mit Balken), Anzahl Drehungen,
   Verlauf als CSV (für Excel) herunterladen.
 - **⚙️ Einstellungen**:
@@ -44,13 +53,18 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
   - fünf Farbschemen fürs Rad (Bunt, Pastell, Neon, Ozean, Herbst)
   - Darstellung Dunkel / Hell / wie das System
   - Gewinner automatisch entfernen, Konfetti und Töne an/aus
-  - eigener Text über dem Ergebnis (z. B. „Dran ist:“)
+  - eigener Text über dem Ergebnis (z. B. „Dran ist:“) und in der Radmitte (z. B. „LOS!“)
+  - Gewinner vorlesen (Sprachausgabe des Browsers)
+  - denselben Eintrag nicht zweimal hintereinander ziehen
 - **⋯ Menü bei den Einträgen**:
   - Liste aus einer `.txt`- oder `.csv`-Datei laden (bei CSV zählt die erste Spalte)
   - Liste als `.txt` speichern
   - Link zum Teilen kopieren: die Liste steckt im Link, andere bekommen beim Öffnen dieselbe Liste
+  - Zahlenreihe einfügen, z. B. `1-30` für Schülernummern
   - Doppelte entfernen, alle löschen
 - **❔ Hilfe** mit Tastenkürzeln und **Datenschutz**-Hinweis (auch unten in der Fußzeile)
+- **📱 Als App installierbar**: eigenes Icon auf dem Home-Bildschirm, startet ohne Browserleiste
+  und funktioniert auch offline (siehe unten).
 
 ### Tastenkürzel
 
@@ -59,6 +73,7 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
 | Leertaste / Enter | Rad drehen |
 | F | Vollbild an/aus |
 | S | Ton an/aus |
+| T | Werkzeuge (Timer, Würfel, Münze, Zahl) |
 | H oder ? | Hilfe |
 | Esc | Fenster schließen |
 
@@ -69,6 +84,16 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
 Damit geteilte Links auch auf anderen Geräten funktionieren, muss die Seite im Netz liegen –
 am einfachsten mit **Coolify** (siehe [Deployment mit Coolify](#deployment-mit-coolify)).
 Admin-Einstellungen werden dabei **nie** mitgeteilt – sie bleiben im jeweiligen Browser.
+
+### Als App installieren
+
+- **iPad/iPhone (Safari):** Teilen-Knopf → „Zum Home-Bildschirm“
+- **Android/Chrome/Edge:** Menü → „App installieren“ bzw. Symbol in der Adressleiste
+
+Offline-Betrieb und Installation brauchen **HTTPS** (bei einer `http://`-Adresse funktioniert die
+Seite normal, nur eben nicht offline). In Coolify also eine `https://`-Domain eintragen.
+Der Service Worker (`sw.js`) holt immer zuerst die aktuelle Version vom Server und greift nur ohne
+Netz auf die gespeicherte Kopie zurück – neue Deployments sind also sofort da.
 
 ## Deployment mit Coolify
 
@@ -165,6 +190,12 @@ ohne dass auf dem Beamer etwas zu sehen ist.
 - Die Regeln gelten für alle Räder: Ist „7b“ gesperrt, ist sie es auch in jedem gespeicherten Rad.
 - Drehdauer, automatisches Entfernen und Teams funktionieren ganz normal weiter. Die Teams
   werden immer fair (zufällig) gebildet, die Admin-Gewichte gelten nur fürs Rad.
+- **Mehrere Gewinner** halten sich an alle Regeln: Gesperrte kommen nie dran, ein einmalig
+  festgelegter Gewinner wird als Erster gezogen, ein dauerhaft festgelegter ebenfalls
+  (danach ist er aus dem Rad und die Gewichte gelten für den Rest).
+- **„Nicht zweimal hintereinander“** (öffentliche Einstellung) wirkt zusätzlich zu den Gewichten.
+  Ein festgelegter Gewinner und Admin-Sperren haben Vorrang. Die Chancen-Spalte im Admin-Bereich
+  rechnet das mit ein.
 - Die **Statistik** zählt ehrlich den Verlauf. Ein gesperrter Eintrag steht dort nach vielen
   Drehungen also mit „0×“. Wenn dich das stört: Verlauf leeren.
 
@@ -199,6 +230,11 @@ js/einstellungen.js  Dialog „Einstellungen“
 js/listen.js         Meine Räder, Datei laden/speichern, Teilen-Link
 js/teams.js          Teams bilden
 js/statistik.js      Statistik und CSV-Export
+js/werkzeuge.js      Timer, Würfel, Münzwurf, Zufallszahl
+js/pwa.js            meldet den Service Worker an
+sw.js                Service Worker (Offline-Betrieb)
+manifest.webmanifest App-Manifest (Name, Farben, Icons)
+icons/               App-Icons (SVG-Quellen + daraus erzeugte PNGs)
 tests/               Tests für js/logik.js
 Dockerfile           Container-Image (nginx) für Coolify & Co.
 deploy/nginx.conf    Webserver-Konfiguration (Caching, gzip, Sicherheits-Header, /healthz)

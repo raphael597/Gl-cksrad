@@ -103,3 +103,36 @@ test('indexUnterZeiger: ungedreht zeigt der Zeiger auf Feld 0', () => {
   // Ein kleines Stück im Uhrzeigersinn gedreht → der Zeiger steht auf dem letzten Feld.
   assert.equal(Logik.indexUnterZeiger(0.01, 8), 7);
 });
+
+test('„nicht zweimal hintereinander“: der letzte Gewinner wird ausgelassen', () => {
+  const zaehler = {};
+  const zufall = zufallMitSeed(3);
+  for (let i = 0; i < 3000; i++) {
+    const { index } = Logik.waehleGewinner(KLASSEN, null, zufall, { ausschliessen: ['6A'] });
+    zaehler[KLASSEN[index]] = (zaehler[KLASSEN[index]] || 0) + 1;
+  }
+  assert.equal(zaehler['6a'], undefined);
+  assert.equal(Object.keys(zaehler).length, 5);
+});
+
+test('Ausschluss wird ignoriert, wenn sonst nichts übrig bliebe', () => {
+  // Nur ein Eintrag im Rad
+  assert.equal(Logik.waehleGewinner(['7b'], null, Math.random, { ausschliessen: ['7b'] }).index, 0);
+  // Alle anderen sind per Admin gesperrt → Admin-Sperre hat Vorrang
+  const admin = { aktiv: true, gewichte: { '5a': 0, '5b': 0 } };
+  const { wahrscheinlichkeiten } = Logik.analyse(['5a', '5b', '6a'], admin, { ausschliessen: ['6a'] });
+  assert.deepEqual(wahrscheinlichkeiten, [0, 0, 1]);
+});
+
+test('ein festgelegter Gewinner schlägt „nicht zweimal hintereinander“', () => {
+  const admin = { aktiv: true, gewichte: {}, naechster: '8a' };
+  const { modus, wahrscheinlichkeiten } = Logik.analyse(['5a', '8a'], admin, { ausschliessen: ['8a'] });
+  assert.equal(modus, 'erzwungen');
+  assert.deepEqual(wahrscheinlichkeiten, [0, 1]);
+});
+
+test('Ausschluss und Admin-Gewichte wirken zusammen', () => {
+  const admin = { aktiv: true, gewichte: { '7b': 0 } };
+  const { wahrscheinlichkeiten } = Logik.analyse(['5a', '6a', '7b'], admin, { ausschliessen: ['5a'] });
+  assert.deepEqual(wahrscheinlichkeiten, [0, 1, 0]);
+});

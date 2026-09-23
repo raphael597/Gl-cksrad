@@ -42,8 +42,25 @@
    *           'gewichtet'  – Admin-Gewichte werden angewendet
    *           'erzwungen'  – der nächste Gewinner ist festgelegt
    *           'notfall'    – alle Gewichte 0, deshalb doch fair
+   *
+   * optionen.ausschliessen: Namen, die diesmal nicht gezogen werden sollen
+   *   (z. B. der letzte Gewinner bei „nicht zweimal hintereinander“).
+   *   Ein festgelegter Gewinner und Admin-Sperren haben Vorrang.
    */
-  function analyse(eintraege, admin) {
+  function analyse(eintraege, admin, optionen = {}) {
+    const ergebnis = grundAnalyse(eintraege, admin);
+    const aus = (optionen.ausschliessen || []).map(schluessel);
+    if (ergebnis.modus === 'erzwungen' || aus.length === 0) return ergebnis;
+
+    const p = ergebnis.wahrscheinlichkeiten.map((w, i) => (aus.includes(schluessel(eintraege[i])) ? 0 : w));
+    const summe = p.reduce((a, b) => a + b, 0);
+    // Bliebe sonst nichts übrig (z. B. nur ein Eintrag), wird der Ausschluss ignoriert.
+    if (summe <= 0) return ergebnis;
+    return { wahrscheinlichkeiten: p.map((w) => w / summe), modus: ergebnis.modus };
+  }
+
+  /** Chancen nur aus den Admin-Einstellungen (ohne weitere Optionen). */
+  function grundAnalyse(eintraege, admin) {
     const n = eintraege.length;
     if (n === 0) return { wahrscheinlichkeiten: [], modus: 'fair' };
 
@@ -83,8 +100,8 @@
    * Wählt den Gewinner-Index aus.
    * `zufall` ist austauschbar, damit die Tests reproduzierbar sind.
    */
-  function waehleGewinner(eintraege, admin, zufall = Math.random) {
-    const { wahrscheinlichkeiten, modus } = analyse(eintraege, admin);
+  function waehleGewinner(eintraege, admin, zufall = Math.random, optionen = {}) {
+    const { wahrscheinlichkeiten, modus } = analyse(eintraege, admin, optionen);
     if (wahrscheinlichkeiten.length === 0) return { index: -1, modus };
 
     let rest = zufall();

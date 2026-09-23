@@ -22,13 +22,21 @@
   let letzterGewinn = null; // { name, index }
   let entfernenBeimSchliessen = false;
   let spaeterNeuLaden = false; // Speicheränderung aus anderem Tab während des Drehens
+  let serieLaeuft = false; // mehrere Gewinner werden gerade nacheinander gezogen
+  let letzteSerie = []; // Namen der letzten Serie – für "Alle zurück ins Rad"
 
   const eingabe = $('#eintraege');
   const titelFeld = $('#rad-titel');
   const zeiger = $('#zeiger');
   const rad = new Rad($('#rad'), { onTick: tick });
 
-  Admin.init({ holeEintraege: () => daten.eintraege });
+  /** Zusätzliche Regeln für die Auswahl, z. B. "nicht zweimal hintereinander". */
+  function ziehOptionen() {
+    const letzter = daten.verlauf[0];
+    return daten.einstellungen.nichtDoppelt && letzter ? { ausschliessen: [letzter.name] } : {};
+  }
+
+  Admin.init({ holeEintraege: () => daten.eintraege, holeOptionen: ziehOptionen });
 
   const zufallZwischen = (min, max) => min + Math.random() * (max - min);
 
@@ -170,6 +178,29 @@
     rad.setFarbschema(e.farben);
     Ton.an = daten.ton !== false;
     $('#btn-ton').textContent = Ton.an ? '🔊' : '🔇';
+    $('#btn-mitte').textContent = (e.nabeText || '').trim() || Speicher.STANDARD_EINSTELLUNGEN.nabeText;
+    const anzahl = Number(e.anzahlZiehen) || 1;
+    $('#anzahl-ziehen').value = String(anzahl);
+    $('#btn-drehen').textContent = anzahl > 1 ? `${anzahl} Gewinner ziehen` : 'Rad drehen';
+  }
+
+  $('#anzahl-ziehen').addEventListener('change', (e) => {
+    daten.einstellungen.anzahlZiehen = Number(e.target.value) || 1;
+    speichern();
+    einstellungenAnwenden();
+  });
+
+  /** Gewinner per Sprachausgabe ansagen (wenn in den Einstellungen aktiviert). */
+  function vorlesen(text) {
+    if (!daten.einstellungen.vorlesen || !('speechSynthesis' in window)) return;
+    try {
+      const ansage = new SpeechSynthesisUtterance(text);
+      ansage.lang = 'de-DE';
+      ansage.rate = 0.95;
+      speechSynthesis.speak(ansage);
+    } catch (e) {
+      /* ohne Sprachausgabe weiter */
+    }
   }
 
   if (systemHell && systemHell.addEventListener) systemHell.addEventListener('change', einstellungenAnwenden);
@@ -205,32 +236,27 @@
 
   function bedienungSperren(gesperrt) {
     document.body.classList.toggle('dreht', gesperrt);
-    const elemente = [eingabe, titelFeld, $('#btn-mischen'), $('#btn-sortieren'), $('#btn-drehen'), $('#btn-mitte'), $('#btn-zurueckholen')];
+    const elemente = [eingabe, titelFeld, $('#btn-mischen'), $('#btn-sortieren'), $('#btn-drehen'), $('#btn-mitte'), $('#btn-zurueckholen'), $('#anzahl-ziehen')];
     for (const el of elemente) el.disabled = gesperrt;
     $('#eintraege-menue').open = false;
   }
 
-  async function drehen() {
-    const eintraege = daten.eintraege.slice();
-    if (rad.dreht || document.querySelector('dialog[open]')) return;
-    if (eintraege.length === 0) {
-      eingabe.focus();
-      melden('Erst Einträge hinzufügen');
-      return;
-    }
+  const pause = (ms) => new Promise((weiter) => setTimeout(weiter, ms));
 
-    Ton.bereit();
+  /**
+   * Ein einzelner Dreh: Gewinner auswählen, Rad hinrollen lassen, im Verlauf festhalten.
+   * Liefert { name, index } – die Anzeige übernehmen drehen() bzw. mehrereZiehen().
+   */
+  async function drehVorgang(eintraege) {
     const admin = Speicher.ladeAdmin(); // frisch lesen – evtl. in einem anderen Fenster geändert
-    const auswahl = Logik.waehleGewinner(eintraege, admin);
+    const auswahl = Logik.waehleGewinner(eintraege, admin, Math.random, ziehOptionen());
     const tempo = DREHDAUER[daten.einstellungen.dauer] || DREHDAUER.normal;
     const ziel = Logik.zielRotation(rad.rotation, auswahl.index, eintraege.length, Math.random, {
       minUmdrehungen: tempo.umdrehungen[0],
       maxUmdrehungen: tempo.umdrehungen[1],
     });
 
-    bedienungSperren(true);
     await rad.drehenZu(ziel, zufallZwischen(tempo.ms[0], tempo.ms[1]));
-    bedienungSperren(false);
 
     // Ergebnis immer aus der tatsächlichen Radstellung ablesen.
     const index = Logik.indexUnterZeiger(rad.rotation, eintraege.length);
@@ -247,34 +273,155 @@
     daten.verlauf = daten.verlauf.slice(0, VERLAUF_MAX);
     speichern();
     verlaufZeichnen();
+    return { name, index };
+  }
 
+  function kannDrehen() {
+    if (rad.dreht || serieLaeuft || document.querySelector('dialog[open]')) return false;
+    if (daten.eintraege.length === 0) {
+      eingabe.focus();
+      melden('Erst Einträge hinzufügen');
+      return false;
+    }
+    return true;
+  }
+
+  function nachDemDrehen() {
     if (spaeterNeuLaden) {
       spaeterNeuLaden = false;
       vonSpeicherLaden();
     }
+  }
 
+  /** Startet je nach Einstellung einen Dreh oder eine Serie mit mehreren Gewinnern. */
+  function starten() {
+    const anzahl = Number(daten.einstellungen.anzahlZiehen) || 1;
+    return anzahl > 1 ? mehrereZiehen(anzahl) : drehen();
+  }
+
+  async function drehen() {
+    if (!kannDrehen()) return;
+    Ton.bereit();
+    serieAnzeigen([], 0);
+    bedienungSperren(true);
+    const { name, index } = await drehVorgang(daten.eintraege.slice());
+    bedienungSperren(false);
+    nachDemDrehen();
     ergebnisZeigen(name, index);
   }
 
-  $('#btn-drehen').addEventListener('click', drehen);
-  $('#btn-mitte').addEventListener('click', drehen);
+  /** Mehrere Gewinner nacheinander – jeder Gewinner verlässt das Rad, damit keiner doppelt drankommt. */
+  async function mehrereZiehen(anzahl) {
+    if (!kannDrehen()) return;
+    const gesamt = Math.min(anzahl, daten.eintraege.length);
+    const serie = [];
+    Ton.bereit();
+    serieLaeuft = true;
+    bedienungSperren(true);
+    serieAnzeigen(serie, gesamt);
+
+    for (let runde = 0; runde < gesamt && daten.eintraege.length > 0; runde++) {
+      const eintraege = daten.eintraege.slice();
+      const { name, index } = await drehVorgang(eintraege);
+      serie.push(name);
+      eintraege.splice(index, 1);
+      daten.entfernt.push(name);
+      eintraegeSetzen(eintraege);
+      serieAnzeigen(serie, gesamt);
+      Ton.gewinn();
+      vorlesen(name);
+      if (runde < gesamt - 1) await pause(1200);
+    }
+
+    serieLaeuft = false;
+    bedienungSperren(false);
+    zurueckholenAnzeigen();
+    nachDemDrehen();
+    serieZeigen(serie);
+  }
+
+  /** Kleine Leiste über dem Rad: "1. 7a · 2. 5b · …" */
+  function serieAnzeigen(serie, gesamt) {
+    const leiste = $('#serie');
+    leiste.innerHTML = '';
+    leiste.hidden = gesamt <= 1;
+    for (let i = 0; i < gesamt; i++) {
+      const li = document.createElement('li');
+      li.textContent = serie[i] || '…';
+      li.classList.toggle('offen', !serie[i]);
+      leiste.appendChild(li);
+    }
+  }
+
+  $('#btn-drehen').addEventListener('click', starten);
+  $('#btn-mitte').addEventListener('click', starten);
 
   // ---------- Ergebnis ----------
 
   const ergebnis = $('#ergebnis');
 
+  function ergebnisModus(serie) {
+    $('#ergebnis-name').hidden = serie;
+    $('#ergebnis-liste').hidden = !serie;
+    $('#btn-serie-zurueck').hidden = !serie;
+    $('#btn-serie-kopieren').hidden = !serie;
+    $('#ergebnis-label').textContent = daten.einstellungen.ergebnisText || Speicher.STANDARD_EINSTELLUNGEN.ergebnisText;
+  }
+
   function ergebnisZeigen(name, index) {
     const auto = daten.einstellungen.autoEntfernen;
     letzterGewinn = { name, index };
     entfernenBeimSchliessen = auto;
-    $('#ergebnis-label').textContent = daten.einstellungen.ergebnisText || Speicher.STANDARD_EINSTELLUNGEN.ergebnisText;
+    ergebnisModus(false);
     $('#ergebnis-name').textContent = name;
     $('#ergebnis-hinweis').hidden = !auto;
     $('#btn-entfernen').hidden = auto;
     ergebnis.showModal();
     Ton.gewinn();
+    vorlesen(name);
     if (daten.einstellungen.konfetti) Konfetti.starten($('#konfetti'));
   }
+
+  function serieZeigen(serie) {
+    if (serie.length === 0) return;
+    letzteSerie = serie.slice();
+    letzterGewinn = null;
+    entfernenBeimSchliessen = false;
+    ergebnisModus(true);
+    const liste = $('#ergebnis-liste');
+    liste.innerHTML = '';
+    for (const name of serie) {
+      const li = document.createElement('li');
+      li.textContent = name;
+      liste.appendChild(li);
+    }
+    $('#ergebnis-hinweis').hidden = true;
+    $('#btn-entfernen').hidden = true;
+    ergebnis.showModal();
+    if (daten.einstellungen.konfetti) Konfetti.starten($('#konfetti'));
+  }
+
+  $('#btn-serie-zurueck').addEventListener('click', () => {
+    for (const name of letzteSerie) {
+      const i = daten.entfernt.lastIndexOf(name);
+      if (i >= 0) daten.entfernt.splice(i, 1);
+    }
+    eintraegeSetzen(daten.eintraege.concat(letzteSerie));
+    zurueckholenAnzeigen();
+    melden(`${letzteSerie.length} Einträge zurück im Rad`);
+    letzteSerie = [];
+    ergebnis.close();
+  });
+
+  $('#btn-serie-kopieren').addEventListener('click', async () => {
+    const text = letzteSerie.map((name, i) => `${i + 1}. ${name}`).join('\n');
+    melden((await kopieren(text)) ? 'Liste kopiert' : 'Kopieren nicht möglich');
+  });
+
+  $('#btn-ergebnis-timer').addEventListener('click', () => {
+    ergebnis.close();
+    dialogOeffnen('werkzeuge', null, 'timer');
+  });
 
   function gewinnerEntfernen() {
     if (!letzterGewinn) return;
@@ -335,11 +482,11 @@
   // ---------- Dialoge (Meine Räder, Teams, Statistik, Einstellungen, Hilfe) ----------
 
   /** Öffnet einen Dialog; Module hören auf das Ereignis "vorOeffnen", um Inhalte zu füllen. */
-  function dialogOeffnen(id, abschnitt) {
+  function dialogOeffnen(id, abschnitt, reiter) {
     const dialog = document.getElementById(id);
-    if (!dialog || dialog.open || rad.dreht) return;
+    if (!dialog || dialog.open || rad.dreht || serieLaeuft) return;
     if (document.querySelector('dialog[open]')) return;
-    dialog.dispatchEvent(new CustomEvent('vorOeffnen'));
+    dialog.dispatchEvent(new CustomEvent('vorOeffnen', { detail: { reiter } }));
     dialog.showModal();
     const inhalt = dialog.querySelector('.fenster-inhalt');
     if (inhalt) inhalt.scrollTop = 0;
@@ -350,7 +497,7 @@
 
   document.addEventListener('click', (e) => {
     const oeffner = e.target.closest('[data-oeffnen]');
-    if (oeffner) dialogOeffnen(oeffner.dataset.oeffnen, oeffner.dataset.abschnitt);
+    if (oeffner) dialogOeffnen(oeffner.dataset.oeffnen, oeffner.dataset.abschnitt, oeffner.dataset.tab);
 
     const schliesser = e.target.closest('[data-schliessen]');
     if (schliesser) schliesser.closest('dialog').close();
@@ -385,7 +532,7 @@
       const knopf = e.target.closest('button, summary');
       if (knopf && !knopf.closest('dialog:not([open])')) return;
       e.preventDefault();
-      drehen();
+      starten();
       return;
     }
 
@@ -405,6 +552,7 @@
     if (taste === 'f') vollbildUmschalten();
     else if (taste === 's') tonUmschalten();
     else if (taste === 'h' || taste === '?') dialogOeffnen('hilfe');
+    else if (taste === 't') dialogOeffnen('werkzeuge');
   });
 
   // 5× schnell auf die Überschrift klicken/tippen (für Tablets ohne Tastatur).
@@ -438,7 +586,7 @@
   window.addEventListener('storage', (e) => {
     if (e.key === Speicher.SCHLUESSEL_ADMIN) Admin.aktualisieren();
     if (e.key === Speicher.SCHLUESSEL_RAD) {
-      if (rad.dreht) spaeterNeuLaden = true;
+      if (rad.dreht || serieLaeuft) spaeterNeuLaden = true;
       else vonSpeicherLaden();
     }
   });
@@ -460,6 +608,7 @@
     eintraegeSetzen,
     verlaufLeeren,
     einstellungenAnwenden,
+    dialogOeffnen,
     titelSetzen(titel) {
       daten.titel = titel;
       speichern();

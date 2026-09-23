@@ -185,6 +185,31 @@
 
   window.addEventListener('hashchange', geteilteListePruefen);
 
+  // ---------- Zahlenreihe (z. B. Schülernummern) ----------
+
+  $('#btn-zahlenreihe').addEventListener('click', () => {
+    menueSchliessen();
+    const antwort = prompt('Zahlenreihe einfügen – von bis (z. B. 1-30).\nDie aktuelle Liste wird ersetzt.', '1-30');
+    if (antwort === null) return;
+    // erlaubt: "1-30", "1 – 30", "1 bis 30" oder nur "30" (= 1 bis 30)
+    const treffer = antwort.match(/^\s*(\d+)\s*(?:-|–|bis|\.\.)\s*(\d+)\s*$/i) || antwort.match(/^\s*()(\d+)\s*$/);
+    if (!treffer) {
+      App.melden('Bitte z. B. „1-30“ eingeben');
+      return;
+    }
+    let von = treffer[1] === '' ? 1 : Number(treffer[1]);
+    let bis = Number(treffer[2]);
+    if (von > bis) [von, bis] = [bis, von];
+    if (bis - von + 1 > MAX_EINTRAEGE) {
+      App.melden(`Höchstens ${MAX_EINTRAEGE} Zahlen auf einmal`);
+      return;
+    }
+    const liste = [];
+    for (let z = von; z <= bis; z++) liste.push(String(z));
+    App.radLaden(`Nummern ${von}–${bis}`, liste);
+    App.melden(`${liste.length} Zahlen eingefügt`);
+  });
+
   // ---------- Aufräumen ----------
 
   $('#btn-doppelte').addEventListener('click', () => {

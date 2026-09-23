@@ -33,6 +33,9 @@
     form.elements.konfetti.checked = !!e.konfetti;
     form.elements.ton.checked = App.daten.ton !== false;
     form.elements.ergebnisText.value = e.ergebnisText;
+    form.elements.vorlesen.checked = !!e.vorlesen;
+    form.elements.nichtDoppelt.checked = !!e.nichtDoppelt;
+    form.elements.nabeText.value = e.nabeText;
   }
 
   dialog.addEventListener('vorOeffnen', formularFuellen);
@@ -44,7 +47,7 @@
     const daten = App.daten;
     if (feld.name === 'ton') daten.ton = feld.checked;
     else if (feld.type === 'checkbox') daten.einstellungen[feld.name] = feld.checked;
-    else if (feld.name === 'ergebnisText') daten.einstellungen.ergebnisText = feld.value.trim();
+    else if (feld.type === 'text') daten.einstellungen[feld.name] = feld.value.trim();
     else daten.einstellungen[feld.name] = feld.value;
     App.speichern();
     App.einstellungenAnwenden();

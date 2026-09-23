@@ -5,15 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Kostenloses Glücksrad für Unterricht, Spiele und Entscheidungen – Einträge eingeben, drehen, fertig.">
   <title>Glücksrad</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎡</text></svg>">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Glücksrad">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="kopf">
     <h1 id="titel">Glücksrad</h1>
     <nav class="kopf-aktionen" aria-label="Funktionen">
+      <button id="timer-pille" class="timer-pille" type="button" data-oeffnen="werkzeuge" data-tab="timer" title="Timer öffnen" hidden>⏱ <span id="timer-pille-zeit">0:00</span></button>
       <button class="nav-btn" type="button" data-oeffnen="raeder" title="Meine Räder">📂<span>Meine Räder</span></button>
       <button class="nav-btn" type="button" data-oeffnen="teams" title="Teams bilden">👥<span>Teams</span></button>
+      <button class="nav-btn" type="button" data-oeffnen="werkzeuge" title="Werkzeuge: Timer, Würfel, Münze, Zufallszahl (T)">🧰<span>Werkzeuge</span></button>
       <button class="nav-btn" type="button" data-oeffnen="statistik" title="Statistik">📊<span>Statistik</span></button>
       <button class="nav-btn" type="button" data-oeffnen="einstellungen" title="Einstellungen">⚙️<span>Einstellungen</span></button>
       <button class="icon-btn" type="button" data-oeffnen="hilfe" title="Hilfe (H)" aria-label="Hilfe">?</button>
@@ -25,6 +35,7 @@
   <main class="layout">
     <section class="buehne" aria-label="Glücksrad">
       <input id="rad-titel" class="rad-titel" type="text" maxlength="60" placeholder="Titel des Rads" aria-label="Titel des Rads" spellcheck="false">
+      <ol id="serie" class="serie" aria-live="polite" hidden></ol>
       <div class="rad-rahmen">
         <svg class="zeiger" id="zeiger" viewBox="0 0 60 80" aria-hidden="true">
           <path d="M30 78 L10 34 A22 22 0 1 1 50 34 Z" />
@@ -33,7 +44,16 @@
         <canvas id="rad"></canvas>
         <button id="btn-mitte" class="nabe" type="button" aria-label="Rad drehen">DREH!</button>
       </div>
-      <button id="btn-drehen" class="drehen-btn" type="button">Rad drehen</button>
+      <div class="drehen-zeile">
+        <button id="btn-drehen" class="drehen-btn" type="button">Rad drehen</button>
+        <label class="anzahl-wahl" title="Wie viele Gewinner nacheinander gezogen werden">
+          <span>Gewinner</span>
+          <select id="anzahl-ziehen" aria-label="Anzahl Gewinner">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="10">10</option>
+          </select>
+        </label>
+      </div>
       <p class="hinweis">Leertaste dreht das Rad</p>
     </section>
 
@@ -47,6 +67,7 @@
               <button type="button" role="menuitem" id="btn-datei-laden">📥 Aus Datei laden (.txt / .csv)</button>
               <button type="button" role="menuitem" id="btn-datei-speichern">💾 Als Datei speichern</button>
               <button type="button" role="menuitem" id="btn-teilen">🔗 Link zum Teilen kopieren</button>
+              <button type="button" role="menuitem" id="btn-zahlenreihe">🔢 Zahlenreihe einfügen (z. B. 1–30)</button>
               <hr>
               <button type="button" role="menuitem" id="btn-doppelte">🧹 Doppelte entfernen</button>
               <button type="button" role="menuitem" id="btn-alle-loeschen" class="gefahr-text">🗑 Alle löschen</button>
@@ -89,9 +110,13 @@
     <div class="ergebnis-inhalt">
       <p class="ergebnis-label" id="ergebnis-label">Das Rad hat entschieden:</p>
       <p class="ergebnis-name" id="ergebnis-name"></p>
+      <ol class="ergebnis-liste" id="ergebnis-liste" hidden></ol>
       <p class="ergebnis-hinweis" id="ergebnis-hinweis" hidden>wird aus dem Rad entfernt</p>
       <div class="knopfreihe">
         <button id="btn-entfernen" class="btn" type="button">Aus dem Rad entfernen</button>
+        <button id="btn-serie-zurueck" class="btn" type="button" hidden>↩ Alle zurück ins Rad</button>
+        <button id="btn-serie-kopieren" class="btn" type="button" hidden>📋 Kopieren</button>
+        <button id="btn-ergebnis-timer" class="btn" type="button" title="Timer öffnen">⏱ Timer</button>
         <button id="btn-weiter" class="btn btn-gold" type="button" autofocus>Weiter</button>
       </div>
     </div>
@@ -188,10 +213,20 @@
       </fieldset>
 
       <fieldset>
+        <legend>Ziehung</legend>
+        <label class="haken"><input type="checkbox" name="nichtDoppelt"> Denselben Eintrag nicht zweimal hintereinander ziehen</label>
+        <label class="feld">
+          <span>Text in der Radmitte</span>
+          <input type="text" name="nabeText" maxlength="10">
+        </label>
+      </fieldset>
+
+      <fieldset>
         <legend>Nach dem Drehen</legend>
         <label class="haken"><input type="checkbox" name="autoEntfernen"> Gewinner automatisch aus dem Rad entfernen</label>
         <label class="haken"><input type="checkbox" name="konfetti"> Konfetti</label>
         <label class="haken"><input type="checkbox" name="ton"> Töne</label>
+        <label class="haken"><input type="checkbox" name="vorlesen"> Gewinner vorlesen (Sprachausgabe)</label>
         <label class="feld">
           <span>Text über dem Ergebnis</span>
           <input type="text" name="ergebnisText" maxlength="60">
@@ -222,6 +257,9 @@
       <ul>
         <li><strong>Meine Räder:</strong> Speichere mehrere Listen (z. B. pro Klasse) und wechsle mit einem Klick.</li>
         <li><strong>Teams:</strong> Teilt alle Einträge zufällig in Gruppen auf.</li>
+        <li><strong>Mehrere Gewinner:</strong> Neben „Rad drehen“ die Anzahl wählen – das Rad zieht dann nacheinander, ohne jemanden doppelt zu ziehen.</li>
+        <li><strong>Werkzeuge:</strong> Timer, Würfel, Münzwurf und Zufallszahl für den Unterricht.</li>
+        <li><strong>Als App:</strong> Im Browser-Menü „Zum Home-Bildschirm“ bzw. „Installieren“ wählen.</li>
         <li><strong>Teilen:</strong> Über <em>⋯ → Link zum Teilen kopieren</em> bekommen andere dieselbe Liste.</li>
         <li><strong>Beamer:</strong> Im Vollbild wird nur das Rad gezeigt.</li>
       </ul>
@@ -231,6 +269,7 @@
         <tr><td><kbd>Leertaste</kbd> / <kbd>Enter</kbd></td><td>Rad drehen</td></tr>
         <tr><td><kbd>F</kbd></td><td>Vollbild an/aus</td></tr>
         <tr><td><kbd>S</kbd></td><td>Ton an/aus</td></tr>
+        <tr><td><kbd>T</kbd></td><td>Werkzeuge (Timer, Würfel …)</td></tr>
         <tr><td><kbd>H</kbd> / <kbd>?</kbd></td><td>Diese Hilfe</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>Fenster schließen</td></tr>
       </table>
@@ -245,6 +284,75 @@
         Beim Teilen per Link steckt die Liste im Link selbst – sie ist also für alle lesbar,
         denen du den Link schickst.
       </p>
+    </div>
+  </dialog>
+
+  <!-- Werkzeuge -->
+  <dialog id="werkzeuge" class="fenster">
+    <header class="fenster-kopf">
+      <h2>🧰 Werkzeuge</h2>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schließen">✕</button>
+    </header>
+    <div class="fenster-inhalt">
+      <div class="reiter" role="tablist">
+        <button type="button" role="tab" data-reiter="timer" aria-selected="true">⏱ Timer</button>
+        <button type="button" role="tab" data-reiter="wuerfel" aria-selected="false">🎲 Würfel</button>
+        <button type="button" role="tab" data-reiter="muenze" aria-selected="false">🪙 Münze</button>
+        <button type="button" role="tab" data-reiter="zahl" aria-selected="false">🔢 Zahl</button>
+      </div>
+
+      <section class="reiter-inhalt" data-reiter-inhalt="timer" role="tabpanel">
+        <div class="timer-anzeige" id="timer-anzeige">1:00</div>
+        <div class="balken timer-balken"><i id="timer-balken"></i></div>
+        <div class="vorgaben" id="timer-vorgaben">
+          <button type="button" class="btn" data-sekunden="30">30 s</button>
+          <button type="button" class="btn" data-sekunden="60">1 min</button>
+          <button type="button" class="btn" data-sekunden="120">2 min</button>
+          <button type="button" class="btn" data-sekunden="300">5 min</button>
+          <button type="button" class="btn" data-sekunden="600">10 min</button>
+        </div>
+        <form id="timer-eigene" class="zeile-form timer-eigene" autocomplete="off">
+          <input id="timer-minuten" type="number" min="0" max="180" value="1" aria-label="Minuten"><span>min</span>
+          <input id="timer-sekunden" type="number" min="0" max="59" value="0" aria-label="Sekunden"><span>s</span>
+          <button class="btn" type="submit">Übernehmen</button>
+        </form>
+        <div class="knopfreihe">
+          <button id="timer-start" class="btn btn-gold" type="button">▶ Start</button>
+          <button id="timer-reset" class="btn" type="button">↺ Zurücksetzen</button>
+        </div>
+      </section>
+
+      <section class="reiter-inhalt" data-reiter-inhalt="wuerfel" role="tabpanel" hidden>
+        <div class="zeile-form">
+          <label class="feld-inline">Anzahl Würfel
+            <select id="wuerfel-anzahl"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+          </label>
+        </div>
+        <div class="wuerfel-flaeche" id="wuerfel-flaeche" aria-live="polite"></div>
+        <p class="werkzeug-ergebnis" id="wuerfel-summe"></p>
+        <div class="knopfreihe"><button id="wuerfel-los" class="btn btn-gold" type="button">🎲 Würfeln</button></div>
+      </section>
+
+      <section class="reiter-inhalt" data-reiter-inhalt="muenze" role="tabpanel" hidden>
+        <div class="muenze" id="muenze" aria-live="polite">?</div>
+        <p class="werkzeug-ergebnis" id="muenze-text">Kopf oder Zahl?</p>
+        <p class="klein zentriert" id="muenze-bilanz"></p>
+        <div class="knopfreihe"><button id="muenze-los" class="btn btn-gold" type="button">🪙 Werfen</button></div>
+      </section>
+
+      <section class="reiter-inhalt" data-reiter-inhalt="zahl" role="tabpanel" hidden>
+        <form id="zahl-form" class="zeile-form" autocomplete="off">
+          <label class="feld-inline">von <input id="zahl-von" type="number" value="1"></label>
+          <label class="feld-inline">bis <input id="zahl-bis" type="number" value="30"></label>
+        </form>
+        <div class="zahl-anzeige" id="zahl-anzeige" aria-live="polite">–</div>
+        <label class="haken"><input type="checkbox" id="zahl-ohne-wiederholung"> ohne Wiederholung</label>
+        <p class="klein" id="zahl-gezogen"></p>
+        <div class="knopfreihe">
+          <button id="zahl-los" class="btn btn-gold" type="button">🔢 Zahl ziehen</button>
+          <button id="zahl-reset" class="btn" type="button">↺ Neu beginnen</button>
+        </div>
+      </section>
     </div>
   </dialog>
 
@@ -333,5 +441,7 @@
   <script src="js/listen.js"></script>
   <script src="js/teams.js"></script>
   <script src="js/statistik.js"></script>
+  <script src="js/werkzeuge.js"></script>
+  <script src="js/pwa.js"></script>
 </body>
 </html>

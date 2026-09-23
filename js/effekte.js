@@ -42,6 +42,13 @@
       this.ton(1500 + Math.random() * 200, jetzt, 0.035, 'square', 0.05);
     },
 
+    /** Drei kurze Pieptöne – z. B. wenn der Timer abgelaufen ist. */
+    alarm() {
+      if (!this.an || !this.ctx) return;
+      const jetzt = this.ctx.currentTime;
+      for (let i = 0; i < 3; i++) this.ton(880, jetzt + i * 0.28, 0.2, 'square', 0.12);
+    },
+
     gewinn() {
       if (!this.an || !this.ctx) return;
       const jetzt = this.ctx.currentTime;

@@ -18,6 +18,10 @@
     autoEntfernen: false,
     konfetti: true,
     ergebnisText: 'Das Rad hat entschieden:',
+    nabeText: 'DREH!', // Text in der Radmitte
+    vorlesen: false, // Gewinner per Sprachausgabe ansagen
+    nichtDoppelt: false, // denselben Eintrag nicht zweimal hintereinander ziehen
+    anzahlZiehen: 1, // wie viele Gewinner pro Durchgang
   };
 
   const STANDARD_RAD = {

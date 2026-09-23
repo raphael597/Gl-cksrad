@@ -13,6 +13,7 @@
   const ENTSPERRT = 'gluecksrad.admin.entsperrt'; // sessionStorage: gilt bis Tab geschlossen
 
   let holeEintraege = () => [];
+  let holeOptionen = () => ({}); // z. B. { ausschliessen: [letzter Gewinner] }
   let simulation = null; // { [schluessel]: Anteil } nach "1000× simulieren"
 
   const dialog = $('#admin');
@@ -92,7 +93,8 @@
   function werteAktualisieren() {
     const admin = Speicher.ladeAdmin();
     const eintraege = holeEintraege();
-    const { wahrscheinlichkeiten, modus } = Logik.analyse(eintraege, admin);
+    const regeln = holeOptionen();
+    const { wahrscheinlichkeiten, modus } = Logik.analyse(eintraege, admin, regeln);
 
     // Chancen pro Name aufsummieren (falls ein Name mehrfach im Rad steht).
     const chance = {};
@@ -132,7 +134,10 @@
     auswahl.value = optionen.find(([w]) => Logik.schluessel(w) === Logik.schluessel(admin.naechster || ''))[0];
     $('#admin-dauerhaft').checked = !!admin.naechsterDauerhaft;
 
-    $('#admin-modus').textContent = modusText(modus, admin, eintraege);
+    const ausgelassen = modus !== 'erzwungen' && regeln.ausschliessen ? regeln.ausschliessen[0] : '';
+    $('#admin-modus').textContent =
+      modusText(modus, admin, eintraege) +
+      (ausgelassen ? ` Außerdem ist „${ausgelassen}“ diesmal ausgeschlossen („nicht zweimal hintereinander“).` : '');
     $('#admin-modus').dataset.modus = modus;
   }
 
@@ -156,7 +161,7 @@
     const runden = 1000;
     const zaehler = {};
     for (let i = 0; i < runden; i++) {
-      const { index } = Logik.waehleGewinner(eintraege, admin);
+      const { index } = Logik.waehleGewinner(eintraege, admin, Math.random, holeOptionen());
       if (index < 0) break;
       const k = Logik.schluessel(eintraege[index]);
       zaehler[k] = (zaehler[k] || 0) + 1;
@@ -267,6 +272,7 @@
     /** app.js gibt hier eine Funktion rein, die die aktuellen Einträge liefert. */
     init(optionen) {
       holeEintraege = optionen.holeEintraege;
+      if (optionen.holeOptionen) holeOptionen = optionen.holeOptionen;
     },
     oeffnen,
     /** Nach Änderungen an den Einträgen oder dem Speicher aufrufen. */

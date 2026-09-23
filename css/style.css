@@ -1026,6 +1026,316 @@ code {
   transform: none;
 }
 
+/* ===== Mehrere Gewinner ===== */
+
+.drehen-zeile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.anzahl-wahl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--gedimmt);
+}
+
+.anzahl-wahl select {
+  background: var(--karte);
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.serie {
+  list-style: none;
+  margin: -6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 660px;
+  counter-reset: serie;
+}
+
+.serie li {
+  counter-increment: serie;
+  background: var(--karte);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.serie li::before {
+  content: counter(serie) ". ";
+  color: var(--gedimmt);
+  font-weight: 600;
+}
+
+.serie li.offen {
+  border-color: var(--rand);
+  opacity: 0.55;
+}
+
+.ergebnis-liste {
+  list-style: none;
+  margin: 12px auto 18px;
+  padding: 0;
+  max-width: 360px;
+  max-height: 45vh;
+  overflow-y: auto;
+  text-align: left;
+  counter-reset: platz;
+}
+
+.ergebnis-liste li {
+  counter-increment: platz;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--linie);
+  font-size: 1.35rem;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.ergebnis-liste li::before {
+  content: counter(platz) ".";
+  min-width: 2ch;
+  color: var(--akzent-text);
+}
+
+/* ===== Timer in der Kopfzeile ===== */
+
+.timer-pille {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--karte);
+  color: var(--akzent-text);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-pille.abgelaufen {
+  background: var(--rot);
+  border-color: transparent;
+  color: #fff;
+  animation: blinken 1s infinite;
+}
+
+@keyframes blinken {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ===== Werkzeuge ===== */
+
+.reiter {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 18px;
+  background: var(--feld);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+}
+
+.reiter button {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 9px 6px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.reiter button:hover {
+  background: var(--knopf-hover);
+}
+
+.reiter button[aria-selected="true"] {
+  background: var(--gold);
+  color: var(--gold-text);
+}
+
+.timer-anzeige,
+.zahl-anzeige {
+  text-align: center;
+  font-size: clamp(3.5rem, 14vw, 6rem);
+  font-weight: 900;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-anzeige.knapp,
+.timer-anzeige.abgelaufen {
+  color: var(--rot-text);
+}
+
+.timer-anzeige.abgelaufen {
+  animation: blinken 1s infinite;
+}
+
+.timer-balken {
+  margin: 8px 0 16px;
+}
+
+.timer-balken i {
+  transition: width 0.2s linear;
+}
+
+.vorgaben {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vorgaben .btn {
+  flex: 1 1 70px;
+}
+
+.timer-eigene {
+  align-items: center;
+  margin-top: 10px;
+}
+
+.timer-eigene > input {
+  flex: 0 0 76px;
+}
+
+.timer-eigene > span {
+  color: var(--gedimmt);
+  font-size: 0.9rem;
+}
+
+.feld-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.fenster .feld-inline input,
+.fenster .feld-inline select {
+  width: 110px;
+}
+
+.werkzeug-ergebnis {
+  min-height: 1.6em;
+  margin: 6px 0;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.zentriert {
+  text-align: center;
+}
+
+.wuerfel-flaeche {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  min-height: 120px;
+  padding: 22px 0 10px;
+}
+
+.wuerfel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 76px;
+  height: 76px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow:
+    inset 0 -4px 0 rgba(0, 0, 0, 0.12),
+    0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.wuerfel .auge {
+  width: 70%;
+  height: 70%;
+  margin: auto;
+  border-radius: 50%;
+  background: #1f2330;
+}
+
+.wuerfel.rollt {
+  animation: rollen 0.14s linear infinite;
+}
+
+@keyframes rollen {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg) translateY(-4px);
+  }
+}
+
+.muenze {
+  display: grid;
+  place-items: center;
+  width: 130px;
+  height: 130px;
+  margin: 18px auto 8px;
+  border: 6px solid #f59e0b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fde68a, var(--gold) 50%, var(--gold-dunkel));
+  color: #7c2d12;
+  font-size: 3rem;
+  font-weight: 900;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+.muenze.wirft {
+  animation: muenzwurf 0.8s ease-in-out;
+}
+
+@keyframes muenzwurf {
+  50% {
+    transform: translateY(-50px) rotateX(900deg);
+  }
+  100% {
+    transform: translateY(0) rotateX(1800deg);
+  }
+}
+
+.zahl-anzeige {
+  margin: 10px 0;
+  color: var(--akzent-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wuerfel.rollt,
+  .muenze.wirft,
+  .timer-pille.abgelaufen,
+  .timer-anzeige.abgelaufen {
+    animation: none;
+  }
+}
+
 /* ===== Admin ===== */
 
 .admin {
@@ -1284,6 +1594,11 @@ code {
 @media (max-width: 480px) {
   .kopf {
     justify-content: center;
+  }
+
+  .reiter button {
+    font-size: 0.8rem;
+    padding: 8px 2px;
   }
 
   .kopf-aktionen {
