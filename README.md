@@ -97,8 +97,10 @@ im Admin-Bereich erstellter Schummel-Link nimmt die Regeln mit.
 
 Offline-Betrieb und Installation brauchen **HTTPS** (bei einer `http://`-Adresse funktioniert die
 Seite normal, nur eben nicht offline). In Coolify also eine `https://`-Domain eintragen.
-Der Service Worker (`sw.js`) holt immer zuerst die aktuelle Version vom Server und greift nur ohne
-Netz auf die gespeicherte Kopie zurück – neue Deployments sind also sofort da.
+Der Service Worker (`sw.js`) holt zuerst die Version vom Server und greift nur ohne Netz auf die
+gespeicherte Kopie zurück. Beim Docker-Build bekommen Skripte, Styles und der Service Worker
+eine aus den Dateien berechnete Versionsnummer in der URL. So lädt der Browser nach einem
+Deployment neue Dateien auch dann, wenn ein vorgeschalteter Cache ältere URLs noch aufbewahrt.
 
 ## Seriös veröffentlichen – Checkliste
 
@@ -152,8 +154,8 @@ Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html
 
 ### Was der Container macht (`deploy/nginx.conf`)
 
-- `Cache-Control: no-cache` + ETag: Browser fragen kurz nach (304), neue Versionen sind nach
-  einem Deployment sofort da.
+- `Cache-Control: no-cache` + ETag für HTML. Skripte und Styles erhalten beim Build versionierte
+  URLs, damit ein vorgeschalteter Cache alte Dateien nicht mit neuem HTML kombiniert.
 - gzip für HTML, CSS, JS und SVG
 - Server-Logs mit gekürzter IP-Adresse (`203.0.113.0` statt `203.0.113.42`) und ohne Referrer
 - ersetzt `%BASIS_URL%` im HTML durch die echte Adresse (für Link-Vorschau und Canonical-Link)
