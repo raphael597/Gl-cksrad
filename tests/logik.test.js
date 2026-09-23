@@ -196,3 +196,30 @@ test('kurz vor dem Stillstand wird nicht mehr umgelenkt', () => {
   assert.equal(Logik.umlenkPlan({ rotation: 0, restweg: 0, restzeit: 0, index: 1, anzahl: 8 }), null);
   assert.equal(Logik.umlenkPlan({ rotation: 0, restweg: 10, restzeit: 1000, index: 9, anzahl: 8 }), null);
 });
+
+test('Roulette-Kugel: Umlenken endet genau auf dem neuen Feld, ohne Tempowechsel', () => {
+  const anzahl = 8;
+  for (let index = 0; index < anzahl; index++) {
+    const position = 3.4; // Kugel zwischen Feld 3 und 4
+    const rest = 20; // noch 20 Felder bis zum bisherigen Ziel
+    const plan = Logik.umlenkSchritte({ position, rest, restzeit: 3000, index, anzahl });
+    assert.ok(plan, `Feld ${index}`);
+    const ende = position + plan.schritte;
+    assert.ok(Math.abs(ende - Math.round(ende)) < 1e-9, 'endet auf einem ganzen Feld');
+    assert.equal(Logik.mod(Math.round(ende), anzahl), index);
+    // Geschwindigkeit der Bremskurve 1 − (1 − t)³ am Anfang: 3 · Rest / Restzeit
+    assert.ok(Math.abs((3 * plan.schritte) / plan.dauer - (3 * rest) / 3000) < 1e-9);
+  }
+});
+
+test('Roulette-Kugel: mit genug Restweg immer, kurz vor Schluss nicht mehr', () => {
+  const anzahl = 12;
+  const sicher = Logik.umlenkSchritteSicher(anzahl);
+  for (let index = 0; index < anzahl; index++) {
+    for (let p = 0; p < 12; p++) {
+      assert.ok(Logik.umlenkSchritte({ position: p + 0.3, rest: sicher + 0.01, restzeit: 900, index, anzahl }));
+    }
+  }
+  // Nur noch ein halbes Feld übrig, Ziel liegt ein halbes Brett entfernt
+  assert.equal(Logik.umlenkSchritte({ position: 5.5, rest: 0.5, restzeit: 100, index: 11, anzahl }), null);
+});

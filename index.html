@@ -50,16 +50,42 @@
   </header>
 
   <main class="layout">
-    <section class="buehne" aria-label="Glücksrad">
+    <section class="buehne" aria-label="Zufallsauswahl">
       <input id="rad-titel" class="rad-titel" type="text" maxlength="60" placeholder="Titel des Rads" aria-label="Titel des Rads" spellcheck="false">
+      <div class="spielart-wahl" role="group" aria-label="Ansicht wählen">
+        <button type="button" data-spielart="rad" aria-pressed="true">🎡 Rad</button>
+        <button type="button" data-spielart="slot" aria-pressed="false">🎰 Slotmaschine</button>
+        <button type="button" data-spielart="roulette" aria-pressed="false">🔴 Roulette</button>
+      </div>
       <ol id="serie" class="serie" aria-live="polite" hidden></ol>
-      <div class="rad-rahmen">
+      <div class="rad-rahmen spielansicht" id="ansicht-rad">
         <svg class="zeiger" id="zeiger" viewBox="0 0 60 80" aria-hidden="true">
           <path d="M30 78 L10 34 A22 22 0 1 1 50 34 Z" />
           <circle cx="30" cy="25" r="7" />
         </svg>
         <canvas id="rad"></canvas>
         <button id="btn-mitte" class="nabe" type="button" aria-label="Rad drehen">DREH!</button>
+      </div>
+      <div class="slot-rahmen spielansicht" id="ansicht-slot" aria-label="Slotmaschine" hidden>
+        <div class="slot-gehaeuse">
+          <div class="slot-lichtleiste" aria-hidden="true">✦ ✦ ✦ ✦ ✦ ✦ ✦</div>
+          <div class="slot-kopf"><span>LUCKY NAMES</span><strong>777</strong></div>
+          <div class="slot-fenster" aria-hidden="true">
+            <div class="slot-walze"><span class="slot-name">?</span></div>
+            <div class="slot-walze"><span class="slot-name">?</span></div>
+            <div class="slot-walze"><span class="slot-name">?</span></div>
+          </div>
+          <div class="slot-fuss">Drei Walzen · ein Ergebnis</div>
+          <div class="slot-sockel" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="roulette-rahmen spielansicht" id="ansicht-roulette" aria-label="Roulette-Tisch" hidden>
+        <div class="roulette-tisch">
+          <div class="roulette-kopf"><span>ROULETTE</span><span class="roulette-kugel" aria-hidden="true">●</span></div>
+          <p id="roulette-status" class="roulette-status" role="status">Die Kugel wartet.</p>
+          <div id="roulette-felder" class="roulette-felder" aria-label="Felder des Roulette-Tischs"></div>
+          <div class="roulette-fuss">Alle Einträge stehen auf gleich großen Feldern.</div>
+        </div>
       </div>
       <div class="drehen-zeile">
         <button id="btn-drehen" class="drehen-btn" type="button">Rad drehen</button>
@@ -71,7 +97,7 @@
           </select>
         </label>
       </div>
-      <p class="hinweis">Leertaste dreht das Rad</p>
+      <p class="hinweis" id="spiel-hinweis">Leertaste dreht das Rad</p>
     </section>
 
     <aside class="seitenleiste">
@@ -118,8 +144,8 @@
         <span>Namen, Klassen oder Aufgaben – einen pro Zeile. Oder eine Liste aus einer Datei laden.</span>
       </li>
       <li>
-        <strong>Rad drehen</strong>
-        <span>Per Knopf, Klick auf die Mitte oder Leertaste. Auf Wunsch mehrere Gewinner nacheinander.</span>
+        <strong>Ansicht wählen und starten</strong>
+        <span>Rad, Slotmaschine oder Roulette – per Knopf oder Leertaste. Auf Wunsch mehrere Gewinner nacheinander.</span>
       </li>
       <li>
         <strong>Weitermachen</strong>
@@ -150,7 +176,7 @@
       </details>
       <details>
         <summary>Funktioniert das am Beamer oder Smartboard?</summary>
-        <p>Ja. Im Vollbild (Taste <kbd>F</kbd>) wird nur das Rad gezeigt, ein laufender Timer bleibt oben sichtbar.</p>
+        <p>Ja. Im Vollbild (Taste <kbd>F</kbd>) wird die gewählte Spielansicht groß gezeigt, ein laufender Timer bleibt oben sichtbar.</p>
       </details>
       <details>
         <summary>Kann ich das Glücksrad als App nutzen?</summary>
@@ -333,7 +359,7 @@
       <h3>So geht's</h3>
       <ol>
         <li>Rechts die Einträge eingeben – einen pro Zeile.</li>
-        <li>Auf <strong>Rad drehen</strong> klicken, auf die Mitte des Rads tippen oder die Leertaste drücken.</li>
+        <li>Zwischen Rad, Slotmaschine und Roulette wählen. Dann auf den Startknopf klicken oder die Leertaste drücken.</li>
         <li>Im Ergebnis-Fenster kannst du den Gewinner aus dem Rad entfernen, damit er nicht noch einmal drankommt.</li>
       </ol>
 
@@ -341,17 +367,17 @@
       <ul>
         <li><strong>Meine Räder:</strong> Speichere mehrere Listen (z. B. pro Klasse) und wechsle mit einem Klick.</li>
         <li><strong>Teams:</strong> Teilt alle Einträge zufällig in Gruppen auf.</li>
-        <li><strong>Mehrere Gewinner:</strong> Neben „Rad drehen“ die Anzahl wählen – das Rad zieht dann nacheinander, ohne jemanden doppelt zu ziehen.</li>
+        <li><strong>Mehrere Gewinner:</strong> Neben dem Startknopf die Anzahl wählen – niemand wird doppelt gezogen.</li>
         <li><strong>Werkzeuge:</strong> Timer, Würfel, Münzwurf und Zufallszahl für den Unterricht.</li>
         <li><strong>Als App:</strong> Im Browser-Menü „Zum Home-Bildschirm“ bzw. „Installieren“ wählen.</li>
         <li><strong>Teilen:</strong> Über <em>⋯ → Link zum Teilen kopieren</em> bekommen andere dieselbe Liste.</li>
         <li><strong>Gerät wechseln:</strong> Unter <em>Meine Räder → Übertragungs-Link</em> nimmst du alle Räder und Einstellungen mit.</li>
-        <li><strong>Beamer:</strong> Im Vollbild wird nur das Rad gezeigt.</li>
+        <li><strong>Beamer:</strong> Im Vollbild wird nur die gewählte Spielansicht gezeigt.</li>
       </ul>
 
       <h3>Tastenkürzel</h3>
       <table class="kuerzel">
-        <tr><td><kbd>Leertaste</kbd> / <kbd>Enter</kbd></td><td>Rad drehen</td></tr>
+        <tr><td><kbd>Leertaste</kbd> / <kbd>Enter</kbd></td><td>Gewählte Ansicht starten</td></tr>
         <tr><td><kbd>F</kbd></td><td>Vollbild an/aus</td></tr>
         <tr><td><kbd>S</kbd></td><td>Ton an/aus</td></tr>
         <tr><td><kbd>T</kbd></td><td>Werkzeuge (Timer, Würfel …)</td></tr>
@@ -514,7 +540,7 @@
         <h3>Gewichtung</h3>
         <p class="klein">
           0 = kommt <strong>nie</strong> dran · 1 = normal · höher = häufiger.
-          Auf dem Rad sind trotzdem alle Felder gleich groß.
+          In Rad und Roulette bleiben alle Felder gleich groß.
         </p>
         <div class="tabelle-huelle">
           <table class="admin-tabelle">
@@ -562,6 +588,7 @@
   <script src="js/paket.js?v=__ASSET_VERSION__"></script>
   <script src="js/effekte.js?v=__ASSET_VERSION__"></script>
   <script src="js/rad.js?v=__ASSET_VERSION__"></script>
+  <script src="js/spiele.js?v=__ASSET_VERSION__"></script>
   <script src="js/qr.js?v=__ASSET_VERSION__"></script>
   <script src="js/admin.js?v=__ASSET_VERSION__"></script>
   <script src="js/app.js?v=__ASSET_VERSION__"></script>

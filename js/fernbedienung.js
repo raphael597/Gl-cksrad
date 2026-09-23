@@ -19,6 +19,13 @@
   const MAX_EINTRAEGE = 500;
 
   const istObjekt = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+
+  // Beschriftungen je nach Ansicht am Rechner (Rad, Slotmaschine, Roulette)
+  const ANSICHT = {
+    rad: { start: '🎡 Rad drehen', nochmal: '🎡 Nochmal drehen', laeuft: 'Rad dreht …', knopf: 'Dreht …' },
+    slot: { start: '🎰 Slotmaschine starten', nochmal: '🎰 Nochmal starten', laeuft: 'Walzen laufen …', knopf: 'Läuft …' },
+    roulette: { start: '🔴 Roulette starten', nochmal: '🔴 Nochmal starten', laeuft: 'Kugel rollt …', knopf: 'Rollt …' },
+  };
   const prozent = (x) => (x * 100).toLocaleString('de-DE', { maximumFractionDigits: x < 0.1 ? 1 : 0 }) + ' %';
 
   let raum = '';
@@ -148,6 +155,7 @@
         : null,
       optionen: istObjekt(roh.optionen) ? { ausschliessen: texte(roh.optionen.ausschliessen, 5) } : {},
       anzahlZiehen: Math.min(10, zahl(roh.anzahlZiehen)) || 1,
+      spielart: Object.prototype.hasOwnProperty.call(ANSICHT, roh.spielart) ? roh.spielart : 'rad',
       verlauf: Array.isArray(roh.verlauf)
         ? roh.verlauf.filter((v) => istObjekt(v) && typeof v.name === 'string' && Number.isFinite(v.zeit)).slice(0, 8)
         : [],
@@ -396,6 +404,7 @@
     const weiter = $('#fb-weiter');
     let phase = 'bereit';
     let serieNamen = null;
+    const texte = ANSICHT[(stand && stand.spielart) || 'rad'];
     name.classList.remove('fb-zufall');
     info.textContent = '';
     weiter.hidden = true;
@@ -408,13 +417,13 @@
         ? 'Öffne das Glücksrad am Rechner – die Verbindung startet dort von selbst.'
         : 'Verbindung zum Server wird aufgebaut …';
       drehen.disabled = true;
-      drehen.textContent = '🎡 Rad drehen';
+      drehen.textContent = texte.start;
     } else if (stand.dreh) {
       phase = 'dreht';
-      label.textContent = stand.serie ? `Ziehung ${stand.serie.gezogen.length + 1} von ${stand.serie.gesamt} – Rad dreht` : 'Rad dreht …';
+      label.textContent = stand.serie ? `Ziehung ${stand.serie.gezogen.length + 1} von ${stand.serie.gesamt} – ${texte.laeuft}` : texte.laeuft;
       name.textContent = `→ ${stand.dreh.ziel}`;
       drehen.disabled = true;
-      drehen.textContent = 'Dreht …';
+      drehen.textContent = texte.knopf;
       serieNamen = stand.serie && stand.serie.gezogen.length ? stand.serie.gezogen : null;
       uhrZeichnen();
     } else if (stand.serie) {
@@ -435,7 +444,7 @@
         name.textContent = stand.ergebnis.name;
       }
       drehen.disabled = false;
-      drehen.textContent = '🎡 Nochmal drehen';
+      drehen.textContent = texte.nochmal;
       weiter.hidden = false;
     } else {
       label.textContent = stand.anzahlZiehen > 1 ? `Bereit · ${stand.anzahlZiehen} Gewinner` : 'Bereit';
@@ -449,7 +458,7 @@
         info.textContent = a.aktiv ? 'Gezogen wird nach deinen Chancen.' : 'Steuerung aus – alle haben die gleiche Chance.';
       }
       drehen.disabled = stand.eintraege.length === 0;
-      drehen.textContent = stand.eintraege.length === 0 ? 'Keine Einträge im Rad' : '🎡 Rad drehen';
+      drehen.textContent = stand.eintraege.length === 0 ? 'Keine Einträge im Rad' : texte.start;
     }
 
     karte.dataset.phase = phase;
@@ -462,7 +471,7 @@
       serieEl.appendChild(li);
     }
     $('#fb-ziel-hinweis').textContent = phase === 'dreht' && stand.dreh
-      ? 'Das Rad dreht! Tippe jetzt auf einen Namen, um es live dorthin umzulenken.'
+      ? 'Es läuft! Tippe jetzt auf einen Namen, um das Ergebnis live dorthin umzulenken.'
       : 'Antippen – das Rad landet beim nächsten Dreh dort. Während es sich dreht, lenkst du es damit live um.';
   }
 

@@ -26,6 +26,7 @@ const DATEIEN = [
   'js/qr.js',
   'js/effekte.js',
   'js/rad.js',
+  'js/spiele.js',
   'js/admin.js',
   'js/app.js',
   'js/live.js',

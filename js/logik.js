@@ -201,9 +201,41 @@
     return bester;
   }
 
+  /*
+   * Dasselbe für schrittweise Anzeigen (Roulette-Kugel läuft von Feld zu Feld):
+   * Die Kugel steht bei `position` (Felder, mit Nachkommastellen) und hat nach der
+   * Bremskurve 1 − (1 − t)³ noch `rest` Felder vor sich. Geschwindigkeit = 3 · Rest /
+   * Restzeit bleibt beim Umlenken gleich. Einzelne Felder fallen weniger auf als ein
+   * bremsendes Rad, deshalb ist der Spielraum hier größer.
+   */
+  const SCHRITTE_MIN = 0.5;
+  const SCHRITTE_MAX = 2;
+
+  /** Ab so vielen restlichen Feldern klappt das Umlenken auf jedes Feld sicher. */
+  function umlenkSchritteSicher(anzahl) {
+    return anzahl / 2 / Math.min(1 - SCHRITTE_MIN, SCHRITTE_MAX - 1);
+  }
+
+  /** Rückgabe: { schritte, dauer } (neuer Rest in Feldern, neue Restzeit) oder null. */
+  function umlenkSchritte({ position, rest, restzeit, index, anzahl }) {
+    if (!(anzahl > 0) || !(index >= 0 && index < anzahl) || !(rest > 1e-6) || !(restzeit > 0)) return null;
+    // Endpunkte sind ganze Zahlen K mit K mod anzahl = index – der nächste zum bisherigen Ende gewinnt.
+    const k = Math.round((position + rest - index) / anzahl);
+    let bester = null;
+    for (const kk of [k - 1, k, k + 1]) {
+      const schritte = kk * anzahl + index - position;
+      const faktor = schritte / rest;
+      if (schritte <= 1e-6 || faktor < SCHRITTE_MIN || faktor > SCHRITTE_MAX) continue;
+      if (!bester || Math.abs(Math.log(faktor)) < Math.abs(Math.log(bester.faktor))) bester = { schritte, faktor };
+    }
+    return bester && { schritte: bester.schritte, dauer: restzeit * bester.faktor };
+  }
+
   return {
     VOLLKREIS,
     UMLENKEN_SICHER,
+    umlenkSchritte,
+    umlenkSchritteSicher,
     schluessel,
     mod,
     gewichtVon,

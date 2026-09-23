@@ -186,6 +186,7 @@
       },
       ...App.liveStand(), // dreh, serie, ergebnis, optionen
       anzahlZiehen: Number(daten.einstellungen.anzahlZiehen) || 1,
+      spielart: daten.einstellungen.spielart, // rad | slot | roulette
       verlauf: daten.verlauf.slice(0, 8),
       quittungen,
       antwort,

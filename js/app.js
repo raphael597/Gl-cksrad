@@ -32,6 +32,7 @@
   const titelFeld = $('#rad-titel');
   const zeiger = $('#zeiger');
   const rad = new Rad($('#rad'), { onTick: tick });
+  const spielansichten = new Spielansichten();
 
   /** Zusätzliche Regeln für die Auswahl, z. B. "nicht zweimal hintereinander". */
   function ziehOptionen() {
@@ -134,6 +135,7 @@
     daten.eintraege = liste;
     if (sichern) speichern();
     rad.setEintraege(liste);
+    spielansichten.setEintraege(liste);
     if (textfeld) eingabe.value = liste.join('\n');
     $('#anzahl').textContent = liste.length;
     Admin.aktualisieren();
@@ -204,9 +206,24 @@
     $('#btn-mitte').textContent = (e.nabeText || '').trim() || Speicher.STANDARD_EINSTELLUNGEN.nabeText;
     const anzahl = Number(e.anzahlZiehen) || 1;
     $('#anzahl-ziehen').value = String(anzahl);
-    $('#btn-drehen').textContent = anzahl > 1 ? `${anzahl} Gewinner ziehen` : 'Rad drehen';
+    const spielart = ['rad', 'slot', 'roulette'].includes(e.spielart) ? e.spielart : 'rad';
+    spielansichten.wechseln(spielart);
+    document.querySelectorAll('[data-spielart]').forEach((knopf) => {
+      knopf.setAttribute('aria-pressed', String(knopf.dataset.spielart === spielart));
+    });
+    if (spielart === 'rad') rad.groesseAnpassen();
+    const beschriftungen = { rad: 'Rad drehen', slot: 'Slotmaschine starten', roulette: 'Roulette starten' };
+    $('#btn-drehen').textContent = anzahl > 1 ? `${anzahl} Gewinner ziehen` : beschriftungen[spielart];
+    $('#spiel-hinweis').textContent = spielart === 'rad' ? 'Leertaste dreht das Rad' : 'Leertaste startet die Ziehung';
     zustandMelden();
   }
+
+  document.querySelectorAll('[data-spielart]').forEach((knopf) => knopf.addEventListener('click', () => {
+    if (document.body.classList.contains('dreht')) return;
+    daten.einstellungen.spielart = knopf.dataset.spielart;
+    speichern();
+    einstellungenAnwenden();
+  }));
 
   $('#anzahl-ziehen').addEventListener('change', (e) => {
     daten.einstellungen.anzahlZiehen = Number(e.target.value) || 1;
@@ -263,7 +280,7 @@
 
   function bedienungSperren(gesperrt) {
     document.body.classList.toggle('dreht', gesperrt);
-    const elemente = [eingabe, titelFeld, $('#btn-mischen'), $('#btn-sortieren'), $('#btn-drehen'), $('#btn-mitte'), $('#btn-zurueckholen'), $('#anzahl-ziehen')];
+    const elemente = [eingabe, titelFeld, $('#btn-mischen'), $('#btn-sortieren'), $('#btn-drehen'), $('#btn-mitte'), $('#btn-zurueckholen'), $('#anzahl-ziehen'), ...document.querySelectorAll('[data-spielart]')];
     for (const el of elemente) el.disabled = gesperrt;
     $('#eintraege-menue').open = false;
   }
@@ -279,10 +296,8 @@
     const optionen = ziehOptionen();
     const auswahl = Logik.waehleGewinner(eintraege, admin, Math.random, optionen);
     const tempo = DREHDAUER[daten.einstellungen.dauer] || DREHDAUER.normal;
-    const ziel = Logik.zielRotation(rad.rotation, auswahl.index, eintraege.length, Math.random, {
-      minUmdrehungen: tempo.umdrehungen[0],
-      maxUmdrehungen: tempo.umdrehungen[1],
-    });
+    const dauer = zufallZwischen(tempo.ms[0], tempo.ms[1]);
+    const ansicht = spielansichten.modus;
 
     const erzwungen = auswahl.modus === 'erzwungen';
     aktuellerDreh = {
@@ -292,15 +307,26 @@
       erzwungen,
       // Name des einmalig festgelegten Gewinners, den dieser Dreh verbraucht
       verbraucht: erzwungen && !admin.naechsterDauerhaft ? admin.naechster : '',
+      // Rad oder Slotmaschine/Roulette – beide können laufInfo() und umlenken()
+      animation: ansicht === 'rad' ? rad : spielansichten,
     };
-    const fahrt = rad.drehenZu(ziel, zufallZwischen(tempo.ms[0], tempo.ms[1]));
+    let fahrt;
+    if (ansicht === 'rad') {
+      const ziel = Logik.zielRotation(rad.rotation, auswahl.index, eintraege.length, Math.random, {
+        minUmdrehungen: tempo.umdrehungen[0],
+        maxUmdrehungen: tempo.umdrehungen[1],
+      });
+      fahrt = rad.drehenZu(ziel, dauer);
+    } else {
+      fahrt = spielansichten.spielen(eintraege, auswahl.index, dauer);
+    }
     zustandMelden();
     await fahrt;
     const dreh = aktuellerDreh;
     aktuellerDreh = null;
 
-    // Ergebnis immer aus der tatsächlichen Radstellung ablesen.
-    const index = Logik.indexUnterZeiger(rad.rotation, eintraege.length);
+    // Beim Rad das sichtbare Feld als Ergebnis ablesen, sonst das (evtl. umgelenkte) Ziel.
+    const index = ansicht === 'rad' ? Logik.indexUnterZeiger(rad.rotation, eintraege.length) : dreh.index;
     const name = eintraege[index];
 
     // Ein einmalig festgelegter Gewinner ist jetzt verbraucht – außer er wurde
@@ -328,7 +354,7 @@
    */
   function umlenkenPruefen() {
     const dreh = aktuellerDreh;
-    if (!dreh || !rad.dreht) return '';
+    if (!dreh) return '';
     const admin = Speicher.ladeAdmin();
     const { wahrscheinlichkeiten, modus } = Logik.analyse(dreh.eintraege, admin, dreh.optionen);
     const erzwungen = modus === 'erzwungen';
@@ -341,7 +367,7 @@
       return '';
     }
     const { index } = Logik.waehleGewinner(dreh.eintraege, admin, Math.random, dreh.optionen);
-    if (index !== dreh.index && !rad.umlenken(index)) return 'zu-spaet';
+    if (index !== dreh.index && !dreh.animation.umlenken(index)) return 'zu-spaet';
     const umgelenkt = index !== dreh.index;
     Object.assign(dreh, { index, erzwungen, verbraucht });
     return umgelenkt ? 'umgelenkt' : '';
@@ -355,7 +381,7 @@
   }
 
   function kannDrehen() {
-    if (rad.dreht || serieLaeuft || document.querySelector('dialog[open]')) return false;
+    if (document.body.classList.contains('dreht') || serieLaeuft || document.querySelector('dialog[open]')) return false;
     if (daten.eintraege.length === 0) {
       eingabe.focus();
       melden('Erst Einträge hinzufügen');
@@ -446,7 +472,10 @@
     $('#ergebnis-liste').hidden = !serie;
     $('#btn-serie-zurueck').hidden = !serie;
     $('#btn-serie-kopieren').hidden = !serie;
-    $('#ergebnis-label').textContent = daten.einstellungen.ergebnisText || Speicher.STANDARD_EINSTELLUNGEN.ergebnisText;
+    const vorgabe = Speicher.STANDARD_EINSTELLUNGEN.ergebnisText;
+    const eigenerText = daten.einstellungen.ergebnisText;
+    const texte = { rad: vorgabe, slot: 'Die Slotmaschine hat entschieden:', roulette: 'Die Kugel ist gefallen:' };
+    $('#ergebnis-label').textContent = eigenerText && eigenerText !== vorgabe ? eigenerText : texte[spielansichten.modus];
   }
 
   function ergebnisZeigen(name, index) {
@@ -571,7 +600,7 @@
   /** Öffnet einen Dialog; Module hören auf das Ereignis "vorOeffnen", um Inhalte zu füllen. */
   function dialogOeffnen(id, abschnitt, reiter) {
     const dialog = document.getElementById(id);
-    if (!dialog || dialog.open || rad.dreht || serieLaeuft) return;
+    if (!dialog || dialog.open || document.body.classList.contains('dreht') || serieLaeuft) return;
     if (document.querySelector('dialog[open]')) return;
     dialog.dispatchEvent(new CustomEvent('vorOeffnen', { detail: { reiter } }));
     dialog.showModal();
@@ -635,7 +664,7 @@
       return;
     }
 
-    if (rad.dreht) return;
+    if (document.body.classList.contains('dreht')) return;
     if (taste === 'f') vollbildUmschalten();
     else if (taste === 's') tonUmschalten();
     else if (taste === 'h' || taste === '?') dialogOeffnen('hilfe');
@@ -676,7 +705,7 @@
       regelnGeaendert();
     }
     if (e.key === Speicher.SCHLUESSEL_RAD) {
-      if (rad.dreht || serieLaeuft) spaeterNeuLaden = true;
+      if (document.body.classList.contains('dreht') || serieLaeuft) spaeterNeuLaden = true;
       else vonSpeicherLaden();
     }
   });
@@ -685,7 +714,7 @@
 
   /** Dreh vom Handy aus. Liefert eine Meldung, wenn es gerade nicht geht, sonst ''. */
   async function fernDrehen() {
-    if (rad.dreht || serieLaeuft) return 'Das Rad dreht gerade.';
+    if (document.body.classList.contains('dreht') || serieLaeuft) return 'Das Rad dreht gerade.';
     if (daten.eintraege.length === 0) return 'Im Rad stehen keine Einträge.';
     // Offene Fenster (z. B. das letzte Ergebnis) erst schließen – wie mit „Weiter“.
     // Das close-Ereignis kommt verzögert; erst danach ist z. B. ein Gewinner entfernt.
@@ -697,7 +726,7 @@
         dialog.close();
       }))
     );
-    if (rad.dreht || serieLaeuft) return 'Das Rad dreht gerade.';
+    if (document.body.classList.contains('dreht') || serieLaeuft) return 'Das Rad dreht gerade.';
     if (daten.eintraege.length === 0) return 'Im Rad stehen keine Einträge.';
     starten();
     return '';
@@ -705,7 +734,7 @@
 
   /** Was die Fernbedienung über den Dreh wissen muss (ohne Admin-Regeln). */
   function liveStand() {
-    const lauf = aktuellerDreh && rad.laufInfo();
+    const lauf = aktuellerDreh && aktuellerDreh.animation.laufInfo();
     return {
       dreh: lauf
         ? {
@@ -728,7 +757,7 @@
       return daten;
     },
     get dreht() {
-      return rad.dreht;
+      return document.body.classList.contains('dreht');
     },
     speichern,
     melden,

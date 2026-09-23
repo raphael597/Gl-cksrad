@@ -22,6 +22,7 @@
     vorlesen: false, // Gewinner per Sprachausgabe ansagen
     nichtDoppelt: false, // denselben Eintrag nicht zweimal hintereinander ziehen
     anzahlZiehen: 1, // wie viele Gewinner pro Durchgang
+    spielart: 'rad', // 'rad' | 'slot' | 'roulette'
   };
 
   const STANDARD_RAD = {

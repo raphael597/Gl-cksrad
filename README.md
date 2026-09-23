@@ -38,11 +38,12 @@ Oder gleich die Online-Version nehmen.
 | --- | --- |
 | Einträge bearbeiten | Rechts im Textfeld, ein Eintrag pro Zeile |
 | Titel des Rads | Über dem Rad direkt hineinklicken und tippen |
-| Drehen | „Rad drehen“, auf die Mitte klicken oder **Leertaste** |
-| Mehrere Gewinner | Neben „Rad drehen“ die Anzahl wählen (1–10) – das Rad zieht nacheinander, niemand doppelt |
+| Ansicht wählen | Über der Bühne zwischen Rad, Slotmaschine und Roulette wechseln |
+| Ziehen | Startknopf, beim Rad auch auf die Mitte klicken, oder **Leertaste** |
+| Mehrere Gewinner | Neben dem Startknopf die Anzahl wählen (1–10) – niemand wird doppelt gezogen |
 | Gewinner entfernen | Im Ergebnis-Fenster „Aus dem Rad entfernen“ (oder automatisch, siehe Einstellungen) |
 | Entfernte zurückholen | Knopf „↩ … zurückholen“ unter den Einträgen |
-| Vollbild (z. B. für den Beamer) | ⛶ oben rechts oder **F** – zeigt dann nur das Rad |
+| Vollbild (z. B. für den Beamer) | ⛶ oben rechts oder **F** – zeigt die gewählte Spielansicht groß |
 
 Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStorage`).
 
@@ -62,7 +63,10 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
   - **Würfel** (1–6 Stück, mit Summe), **Münzwurf** (mit Bilanz),
     **Zufallszahl** von–bis (auch ohne Wiederholung)
   - aus dem Ergebnis-Fenster direkt per „⏱ Timer“ erreichbar (z. B. Redezeit für den Gewinner)
-- **🏆 Mehrere Gewinner**: z. B. 3 Referenten auf einmal ziehen; Gewinner verlassen das Rad,
+- **🎰 Slotmaschine und Roulette-Tisch**: dieselben Einträge als Walzen oder auf einem grünen
+  Tisch anzeigen. Beide Ansichten verwenden dieselbe Gewinnerauswahl und dieselben Admin-Regeln
+  wie das Rad. Die gewählte Ansicht bleibt in diesem Browser gespeichert.
+- **🏆 Mehrere Gewinner**: z. B. 3 Referenten auf einmal ziehen; Gewinner verlassen die Liste,
   am Ende gibt es eine nummerierte Liste (kopierbar, „Alle zurück ins Rad“).
 - **📊 Statistik**: wie oft wurde wer gezogen (mit Balken), Anzahl Drehungen,
   Verlauf als CSV (für Excel) herunterladen.
@@ -88,7 +92,7 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
 
 | Taste | Aktion |
 | --- | --- |
-| Leertaste / Enter | Rad drehen |
+| Leertaste / Enter | Gewählte Spielansicht starten |
 | F | Vollbild an/aus |
 | S | Ton an/aus |
 | T | Werkzeuge (Timer, Würfel, Münze, Zahl) |
@@ -264,6 +268,10 @@ es bremst nur etwas früher oder später. Das Handy zählt herunter, wie lange d
 genug liegt; sonst meldet das Handy „Zu spät“ und die Festlegung gilt für den nächsten Dreh. Dasselbe
 gilt für Änderungen im Admin-Bereich oder in einem zweiten Fenster: Wird das Ziel gerade gesperrt oder
 ein anderer Gewinner festgelegt, lenkt das Rad um.
+
+Das klappt in allen drei Ansichten: Bei der **Slotmaschine** bis kurz bevor die erste Walze stoppt
+(vorher zeigen alle Walzen nur zufällige Namen), beim **Roulette** läuft die Kugel mit gleichem Tempo
+ein paar Felder mehr oder weniger. Die Knöpfe am Handy heißen passend zur Ansicht am Rechner.
 
 Gut zu wissen:
 
