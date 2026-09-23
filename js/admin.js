@@ -14,6 +14,7 @@
 
   let holeEintraege = () => [];
   let holeOptionen = () => ({}); // z. B. { ausschliessen: [letzter Gewinner] }
+  let beiAenderung = () => {}; // app.js: z. B. laufende Drehung umlenken, Handy informieren
   let simulation = null; // { [schluessel]: Anteil } nach "1000× simulieren"
 
   const dialog = $('#admin');
@@ -43,6 +44,7 @@
     Speicher.speichereAdmin(admin);
     simulation = null;
     werteAktualisieren();
+    beiAenderung();
   }
 
   const prozent = (x) => (x * 100).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %';
@@ -305,6 +307,7 @@
     Speicher.adminZuruecksetzen();
     simulation = null;
     werteAktualisieren();
+    beiAenderung();
   });
 
   global.Admin = {
@@ -312,6 +315,7 @@
     init(optionen) {
       holeEintraege = optionen.holeEintraege;
       if (optionen.holeOptionen) holeOptionen = optionen.holeOptionen;
+      if (optionen.beiAenderung) beiAenderung = optionen.beiAenderung;
     },
     oeffnen,
     /** Nach Änderungen an den Einträgen oder dem Speicher aufrufen. */

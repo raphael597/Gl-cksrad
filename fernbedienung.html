@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de" data-design="dunkel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Fernbedienung">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Fernbedienung – Glücksrad</title>
+  <script src="js/design.js?v=__ASSET_VERSION__"></script>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css?v=__ASSET_VERSION__">
+  <link rel="stylesheet" href="css/fernbedienung.css?v=__ASSET_VERSION__">
+</head>
+<body class="fb">
+  <header class="fb-kopf">
+    <div class="fb-marke">
+      <img src="icons/icon.svg" alt="" width="34" height="34">
+      <div>
+        <strong>Fernbedienung</strong>
+        <span id="fb-rad-titel">Glücksrad</span>
+      </div>
+    </div>
+    <span id="fb-verbindung" class="fb-verbindung" data-status="verbinde" role="status" aria-live="polite">Verbinde …</span>
+  </header>
+
+  <!-- Ohne Link: Anleitung -->
+  <main id="fb-ohne-link" class="fb-inhalt" hidden>
+    <section class="fb-karte fb-anleitung">
+      <h1>📱 Handy verbinden</h1>
+      <ol>
+        <li>Am Rechner das Glücksrad öffnen und den Admin-Bereich entsperren.</li>
+        <li>Unter <strong>„Handy als Fernbedienung“</strong> auf <em>Handy verbinden</em> tippen.</li>
+        <li>Den QR-Code mit der Handy-Kamera scannen – fertig.</li>
+      </ol>
+      <form id="fb-link-form" class="fb-link-form" autocomplete="off">
+        <label for="fb-link-eingabe" class="klein">Oder den Handy-Link hier einfügen:</label>
+        <div class="zeile-form">
+          <input id="fb-link-eingabe" type="url" inputmode="url" placeholder="https://…/fernbedienung.html#k=…" required>
+          <button class="btn btn-gold" type="submit">Verbinden</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <main id="fb-steuerung" class="fb-inhalt" hidden>
+    <!-- Was das Rad gerade tut -->
+    <section class="fb-karte fb-live" id="fb-live" data-phase="bereit">
+      <p class="fb-live-label" id="fb-live-label">Bereit</p>
+      <p class="fb-live-name" id="fb-live-name" aria-live="polite">–</p>
+      <ol class="fb-serie" id="fb-serie" hidden></ol>
+      <div class="fb-fortschritt" id="fb-fortschritt" hidden><i id="fb-fortschritt-balken"></i></div>
+      <p class="fb-live-info" id="fb-live-info"></p>
+      <div class="fb-aktionen">
+        <button id="fb-drehen" class="btn btn-gold fb-drehen" type="button">🎡 Rad drehen</button>
+        <button id="fb-weiter" class="btn" type="button" hidden>Ergebnis schließen</button>
+      </div>
+    </section>
+
+    <!-- Hauptschalter -->
+    <section class="fb-karte fb-schalter-karte">
+      <label class="schalter">
+        <input id="fb-aktiv" type="checkbox">
+        <span class="schalter-bahn"></span>
+        <span>Steuerung aktiv</span>
+      </label>
+      <p class="fb-modus" id="fb-modus"></p>
+    </section>
+
+    <!-- Nächstes Ergebnis -->
+    <section class="fb-karte">
+      <div class="fb-karte-kopf">
+        <h2>Nächstes Ergebnis</h2>
+        <label class="fb-mini-haken" title="Sonst gilt die Festlegung nur für einen Dreh">
+          <input id="fb-dauerhaft" type="checkbox"> immer
+        </label>
+      </div>
+      <p class="klein fb-hinweis" id="fb-ziel-hinweis">Antippen – das Rad landet beim nächsten Dreh dort. Während es sich dreht, lenkst du es damit live um.</p>
+      <div class="fb-chips" id="fb-chips"></div>
+    </section>
+
+    <!-- Chancen -->
+    <section class="fb-karte">
+      <div class="fb-karte-kopf">
+        <h2>Chancen</h2>
+        <button id="fb-alle-normal" class="link-btn" type="button">alle normal</button>
+      </div>
+      <p class="klein fb-hinweis">− / + ändert, wie oft ein Eintrag drankommt. 🚫 = nie. Auf dem Rad bleiben alle Felder gleich groß.</p>
+      <ul class="fb-gewichte" id="fb-gewichte"></ul>
+    </section>
+
+    <!-- Verlauf -->
+    <section class="fb-karte">
+      <h2>Zuletzt gezogen</h2>
+      <ol class="verlauf fb-verlauf" id="fb-verlauf"></ol>
+    </section>
+
+    <p class="fb-fuss">
+      <button id="fb-trennen" class="link-btn" type="button">Dieses Handy abmelden</button>
+    </p>
+  </main>
+
+  <div id="meldung" class="meldung" role="status" aria-live="polite" popover="manual"></div>
+
+  <script src="js/logik.js?v=__ASSET_VERSION__"></script>
+  <script src="js/fernbedienung.js?v=__ASSET_VERSION__"></script>
+</body>
+</html>

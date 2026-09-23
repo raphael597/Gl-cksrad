@@ -1,0 +1,545 @@
+/* ===== Fernbedienung fürs Handy (fernbedienung.html) – ergänzt style.css ===== */
+
+body.fb {
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Kopfzeile ---------- */
+
+.fb-kopf {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--linie);
+}
+
+.fb-marke {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fb-marke div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fb-marke strong {
+  font-size: 1.05rem;
+}
+
+.fb-marke span {
+  color: var(--gedimmt);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fb-verbindung {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rand);
+  background: var(--knopf);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.fb-verbindung::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gedimmt);
+}
+
+.fb-verbindung[data-status="online"]::before {
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+}
+
+.fb-verbindung[data-status="warnung"]::before {
+  background: var(--gold);
+}
+
+.fb-verbindung[data-status="fehler"]::before {
+  background: var(--rot);
+}
+
+.fb-verbindung[data-status="verbinde"]::before {
+  animation: fb-pulsieren 1s ease-in-out infinite alternate;
+}
+
+@keyframes fb-pulsieren {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
+/* ---------- Inhalt ---------- */
+
+.fb-inhalt {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 14px 14px 32px;
+  display: grid;
+  gap: 14px;
+}
+
+.fb-inhalt > * {
+  min-width: 0; /* lange Namen dürfen die Seite nicht verbreitern */
+}
+
+.fb-karte {
+  background: var(--karte);
+  border: 1px solid var(--rand);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.fb-karte h1,
+.fb-karte h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.fb-karte-kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fb-hinweis {
+  margin-bottom: 12px;
+}
+
+/* ---------- Live-Karte: was das Rad gerade tut ---------- */
+
+.fb-live {
+  text-align: center;
+  padding: 18px 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fb-live[data-phase="dreht"] {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15), 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.fb-live[data-phase="ergebnis"] {
+  border-color: rgba(52, 211, 153, 0.6);
+}
+
+.fb-live[data-phase="offline"] {
+  opacity: 0.85;
+}
+
+.fb-live-label {
+  margin: 0;
+  color: var(--gedimmt);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fb-live-name {
+  margin: 6px 0 4px;
+  font-size: clamp(1.7rem, 8.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  background: var(--titel-verlauf);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.fb-live[data-phase="offline"] .fb-live-name,
+.fb-live[data-phase="bereit"] .fb-live-name.fb-zufall {
+  background: none;
+  color: var(--text);
+  font-size: clamp(1.3rem, 6vw, 1.7rem);
+}
+
+.fb-live-info {
+  margin: 6px 0 0;
+  min-height: 1.3em;
+  color: var(--gedimmt);
+  font-size: 0.9rem;
+}
+
+.fb-live-info strong {
+  color: var(--akzent-text);
+}
+
+.fb-serie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: fb-serie;
+}
+
+.fb-serie li {
+  counter-increment: fb-serie;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--badge);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.fb-serie li::before {
+  content: counter(fb-serie) ". ";
+  color: var(--gedimmt);
+}
+
+.fb-fortschritt {
+  height: 8px;
+  margin: 12px 4px 0;
+  border-radius: 999px;
+  background: var(--badge);
+  overflow: hidden;
+}
+
+.fb-fortschritt i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold-dunkel), var(--gold));
+}
+
+.fb-aktionen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fb-aktionen .btn {
+  min-width: 0;
+  white-space: normal;
+  border-radius: 14px;
+}
+
+.fb-drehen {
+  padding: 16px;
+  font-size: 1.15rem;
+}
+
+.fb-drehen:disabled {
+  background: var(--knopf);
+  color: var(--gedimmt);
+  border-color: var(--rand);
+  opacity: 1;
+}
+
+.fb-aktionen #fb-weiter {
+  padding: 12px;
+}
+
+/* ---------- Hauptschalter ---------- */
+
+.fb-schalter-karte .schalter {
+  width: 100%;
+  min-height: 32px;
+}
+
+.fb-modus {
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.fb-modus[data-modus="gewichtet"],
+.fb-modus[data-modus="erzwungen"] {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.fb-modus[data-modus="notfall"] {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.fb-mini-haken {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gedimmt);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 6px 0;
+}
+
+.fb-mini-haken input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--gold);
+}
+
+/* ---------- Nächstes Ergebnis: Kacheln ---------- */
+
+.fb-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+.fb-chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 58px;
+  padding: 8px 12px;
+  border: 1px solid var(--rand);
+  border-radius: 14px;
+  background: var(--knopf);
+  text-align: left;
+  transition: transform 0.08s, background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+}
+
+.fb-chip:active {
+  transform: scale(0.97);
+}
+
+.fb-chip-name {
+  width: 100%;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.fb-chip-info {
+  color: var(--gedimmt);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-chip.fb-zufall {
+  border-style: dashed;
+}
+
+.fb-chip.gewaehlt {
+  border-color: transparent;
+  background: var(--gold);
+  color: var(--gold-text);
+}
+
+.fb-chip.gewaehlt .fb-chip-info {
+  color: var(--gold-text);
+  opacity: 0.8;
+}
+
+.fb-chip.gesperrt:not(.gewaehlt) .fb-chip-name {
+  color: var(--rot-text);
+  text-decoration: line-through;
+}
+
+/* Ziel der laufenden Drehung */
+.fb-chip.ziel::after {
+  content: "🎯";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.9rem;
+}
+
+.fb-chip.ziel:not(.gewaehlt) {
+  border-color: rgba(251, 191, 36, 0.8);
+}
+
+/* ---------- Chancen ---------- */
+
+.fb-gewichte {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fb-gewichte li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "name regler nie"
+    "balken balken balken";
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--linie);
+}
+
+.fb-gewichte li:last-child {
+  border-bottom: none;
+}
+
+.fb-gewicht-name {
+  grid-area: name;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fb-gewicht-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fb-gewicht-name span {
+  flex: 0 0 auto;
+  color: var(--gedimmt);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-balken {
+  grid-area: balken;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--badge);
+  overflow: hidden;
+}
+
+.fb-balken i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--gold);
+  transition: width 0.25s;
+}
+
+.fb-regler {
+  grid-area: regler;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  background: var(--knopf);
+  overflow: hidden;
+}
+
+.fb-regler button {
+  width: 42px;
+  height: 40px;
+  border: none;
+  background: none;
+  font-size: 1.25rem;
+  font-weight: 700;
+  touch-action: manipulation;
+}
+
+.fb-regler button:active:not(:disabled) {
+  background: var(--knopf-hover);
+}
+
+.fb-regler output {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-nie {
+  grid-area: nie;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  background: transparent;
+  filter: grayscale(1);
+  opacity: 0.6;
+  touch-action: manipulation;
+}
+
+.fb-gewichte li.gesperrt .fb-nie {
+  filter: none;
+  opacity: 1;
+  border-color: rgba(244, 63, 94, 0.6);
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.fb-gewichte li.gesperrt .fb-gewicht-name strong,
+.fb-gewichte li.gesperrt output {
+  color: var(--rot-text);
+}
+
+.fb-gewichte li.gesperrt .fb-gewicht-name strong {
+  text-decoration: line-through;
+}
+
+.fb-inaktiv .fb-chips,
+.fb-inaktiv .fb-gewichte {
+  opacity: 0.55;
+}
+
+/* ---------- Verlauf & Fuß ---------- */
+
+.fb-verlauf {
+  max-height: none;
+}
+
+.fb-fuss {
+  margin: 4px 0 0;
+  text-align: center;
+}
+
+/* ---------- Ohne Link ---------- */
+
+.fb-anleitung ol {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.fb-link-form input {
+  background: var(--feld);
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-chip,
+  .fb-balken i {
+    transition: none;
+  }
+
+  .fb-verbindung[data-status="verbinde"]::before {
+    animation: none;
+  }
+}
