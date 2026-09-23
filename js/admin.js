@@ -323,7 +323,7 @@
       link = `${location.href.split('#')[0]}#r=${Paket.schummelKurzKodieren(paket)}`;
     } catch (e) {
       ausgabe.hidden = true;
-      info.textContent = 'Für den Link braucht das Rad 1–500 Einträge mit höchstens 100 Zeichen.';
+      info.textContent = 'Link nicht erstellt. Bitte Einträge, Reihenfolge und Einstellungen prüfen.';
       return;
     }
     feld.value = link;

@@ -817,6 +817,21 @@
       speichern();
       vonSpeicherLaden();
     },
+    /** Geprüften Schummel-Link samt Spiel-Einstellungen in einem Schritt übernehmen. */
+    schummelLinkEinspielen(paket) {
+      daten.titel = paket.titel;
+      daten.eintraege = paket.eintraege;
+      daten.entfernt = [];
+      // Ältere Links enthalten keine Spiel-Einstellungen; dann bleiben die
+      // bisherigen Werte des Empfängers erhalten.
+      if (paket.einstellungen) {
+        daten.einstellungen = Object.assign({}, Speicher.STANDARD_EINSTELLUNGEN, paket.einstellungen);
+        daten.ton = paket.ton;
+      }
+      speichern();
+      vonSpeicherLaden();
+      zustandMelden();
+    },
     /** Ganzes Rad ersetzen (Titel + Einträge), z. B. beim Öffnen eines gespeicherten Rads. */
     radLaden(titel, eintraege) {
       daten.titel = titel;
