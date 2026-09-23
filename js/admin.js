@@ -262,10 +262,21 @@
     feld.value = link;
     ausgabe.hidden = false;
     let kopiert = false;
+    // Das sichtbare Feld liegt im modalen Dialog und lässt sich in Safari
+    // zuverlässiger kopieren als ein unsichtbares Feld außerhalb davon.
+    feld.focus();
+    feld.select();
     try {
-      kopiert = await App.kopieren(link);
+      kopiert = document.execCommand('copy');
     } catch (e) {
-      // Der Link bleibt im Dialog zum manuellen Kopieren verfügbar.
+      // Modernen Zwischenablage-Weg darunter versuchen.
+    }
+    if (!kopiert) {
+      try {
+        kopiert = await App.kopieren(link);
+      } catch (e) {
+        // Der Link bleibt im Dialog zum manuellen Kopieren verfügbar.
+      }
     }
     info.textContent = kopiert ? 'Link kopiert.' : 'Automatisches Kopieren nicht möglich. Link unten markieren und kopieren.';
     if (!kopiert) {
