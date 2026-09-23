@@ -29,6 +29,7 @@
   const titelFeld = $('#rad-titel');
   const zeiger = $('#zeiger');
   const rad = new Rad($('#rad'), { onTick: tick });
+  const spielansichten = new Spielansichten();
 
   /** Zusätzliche Regeln für die Auswahl, z. B. "nicht zweimal hintereinander". */
   function ziehOptionen() {
@@ -126,6 +127,7 @@
     daten.eintraege = liste;
     if (sichern) speichern();
     rad.setEintraege(liste);
+    spielansichten.setEintraege(liste);
     if (textfeld) eingabe.value = liste.join('\n');
     $('#anzahl').textContent = liste.length;
     Admin.aktualisieren();
@@ -194,8 +196,23 @@
     $('#btn-mitte').textContent = (e.nabeText || '').trim() || Speicher.STANDARD_EINSTELLUNGEN.nabeText;
     const anzahl = Number(e.anzahlZiehen) || 1;
     $('#anzahl-ziehen').value = String(anzahl);
-    $('#btn-drehen').textContent = anzahl > 1 ? `${anzahl} Gewinner ziehen` : 'Rad drehen';
+    const spielart = ['rad', 'slot', 'roulette'].includes(e.spielart) ? e.spielart : 'rad';
+    spielansichten.wechseln(spielart);
+    document.querySelectorAll('[data-spielart]').forEach((knopf) => {
+      knopf.setAttribute('aria-pressed', String(knopf.dataset.spielart === spielart));
+    });
+    if (spielart === 'rad') rad.groesseAnpassen();
+    const beschriftungen = { rad: 'Rad drehen', slot: 'Slotmaschine starten', roulette: 'Roulette starten' };
+    $('#btn-drehen').textContent = anzahl > 1 ? `${anzahl} Gewinner ziehen` : beschriftungen[spielart];
+    $('#spiel-hinweis').textContent = spielart === 'rad' ? 'Leertaste dreht das Rad' : 'Leertaste startet die Ziehung';
   }
+
+  document.querySelectorAll('[data-spielart]').forEach((knopf) => knopf.addEventListener('click', () => {
+    if (document.body.classList.contains('dreht')) return;
+    daten.einstellungen.spielart = knopf.dataset.spielart;
+    speichern();
+    einstellungenAnwenden();
+  }));
 
   $('#anzahl-ziehen').addEventListener('change', (e) => {
     daten.einstellungen.anzahlZiehen = Number(e.target.value) || 1;
@@ -252,7 +269,7 @@
 
   function bedienungSperren(gesperrt) {
     document.body.classList.toggle('dreht', gesperrt);
-    const elemente = [eingabe, titelFeld, $('#btn-mischen'), $('#btn-sortieren'), $('#btn-drehen'), $('#btn-mitte'), $('#btn-zurueckholen'), $('#anzahl-ziehen')];
+    const elemente = [eingabe, titelFeld, $('#btn-mischen'), $('#btn-sortieren'), $('#btn-drehen'), $('#btn-mitte'), $('#btn-zurueckholen'), $('#anzahl-ziehen'), ...document.querySelectorAll('[data-spielart]')];
     for (const el of elemente) el.disabled = gesperrt;
     $('#eintraege-menue').open = false;
   }
@@ -267,15 +284,19 @@
     const admin = Speicher.ladeAdmin(); // frisch lesen – evtl. in einem anderen Fenster geändert
     const auswahl = Logik.waehleGewinner(eintraege, admin, Math.random, ziehOptionen());
     const tempo = DREHDAUER[daten.einstellungen.dauer] || DREHDAUER.normal;
-    const ziel = Logik.zielRotation(rad.rotation, auswahl.index, eintraege.length, Math.random, {
-      minUmdrehungen: tempo.umdrehungen[0],
-      maxUmdrehungen: tempo.umdrehungen[1],
-    });
-
-    await rad.drehenZu(ziel, zufallZwischen(tempo.ms[0], tempo.ms[1]));
-
-    // Ergebnis immer aus der tatsächlichen Radstellung ablesen.
-    const index = Logik.indexUnterZeiger(rad.rotation, eintraege.length);
+    const dauer = zufallZwischen(tempo.ms[0], tempo.ms[1]);
+    let index = auswahl.index;
+    if (spielansichten.modus === 'rad') {
+      const ziel = Logik.zielRotation(rad.rotation, index, eintraege.length, Math.random, {
+        minUmdrehungen: tempo.umdrehungen[0],
+        maxUmdrehungen: tempo.umdrehungen[1],
+      });
+      await rad.drehenZu(ziel, dauer);
+      // Beim Rad das sichtbare Feld als Ergebnis ablesen.
+      index = Logik.indexUnterZeiger(rad.rotation, eintraege.length);
+    } else {
+      await spielansichten.spielen(eintraege, index, dauer);
+    }
     const name = eintraege[index];
 
     // Ein einmalig festgelegter Gewinner ist jetzt verbraucht.
@@ -293,7 +314,7 @@
   }
 
   function kannDrehen() {
-    if (rad.dreht || serieLaeuft || document.querySelector('dialog[open]')) return false;
+    if (document.body.classList.contains('dreht') || serieLaeuft || document.querySelector('dialog[open]')) return false;
     if (daten.eintraege.length === 0) {
       eingabe.focus();
       melden('Erst Einträge hinzufügen');
@@ -381,7 +402,10 @@
     $('#ergebnis-liste').hidden = !serie;
     $('#btn-serie-zurueck').hidden = !serie;
     $('#btn-serie-kopieren').hidden = !serie;
-    $('#ergebnis-label').textContent = daten.einstellungen.ergebnisText || Speicher.STANDARD_EINSTELLUNGEN.ergebnisText;
+    const vorgabe = Speicher.STANDARD_EINSTELLUNGEN.ergebnisText;
+    const eigenerText = daten.einstellungen.ergebnisText;
+    const texte = { rad: vorgabe, slot: 'Die Slotmaschine hat entschieden:', roulette: 'Die Kugel ist gefallen:' };
+    $('#ergebnis-label').textContent = eigenerText && eigenerText !== vorgabe ? eigenerText : texte[spielansichten.modus];
   }
 
   function ergebnisZeigen(name, index) {
@@ -500,7 +524,7 @@
   /** Öffnet einen Dialog; Module hören auf das Ereignis "vorOeffnen", um Inhalte zu füllen. */
   function dialogOeffnen(id, abschnitt, reiter) {
     const dialog = document.getElementById(id);
-    if (!dialog || dialog.open || rad.dreht || serieLaeuft) return;
+    if (!dialog || dialog.open || document.body.classList.contains('dreht') || serieLaeuft) return;
     if (document.querySelector('dialog[open]')) return;
     dialog.dispatchEvent(new CustomEvent('vorOeffnen', { detail: { reiter } }));
     dialog.showModal();
@@ -564,7 +588,7 @@
       return;
     }
 
-    if (rad.dreht) return;
+    if (document.body.classList.contains('dreht')) return;
     if (taste === 'f') vollbildUmschalten();
     else if (taste === 's') tonUmschalten();
     else if (taste === 'h' || taste === '?') dialogOeffnen('hilfe');
@@ -602,7 +626,7 @@
   window.addEventListener('storage', (e) => {
     if (e.key === Speicher.SCHLUESSEL_ADMIN) Admin.aktualisieren();
     if (e.key === Speicher.SCHLUESSEL_RAD) {
-      if (rad.dreht || serieLaeuft) spaeterNeuLaden = true;
+      if (document.body.classList.contains('dreht') || serieLaeuft) spaeterNeuLaden = true;
       else vonSpeicherLaden();
     }
   });
@@ -614,7 +638,7 @@
       return daten;
     },
     get dreht() {
-      return rad.dreht;
+      return document.body.classList.contains('dreht');
     },
     speichern,
     melden,

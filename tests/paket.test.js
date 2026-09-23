@@ -7,13 +7,14 @@ const Logik = require('../js/logik.js');
 const STANDARD = {
   dauer: 'normal', farben: 'bunt', design: 'dunkel', autoEntfernen: false, konfetti: true,
   ergebnisText: 'Das Rad hat entschieden:', nabeText: 'DREH!', vorlesen: false, nichtDoppelt: false, anzahlZiehen: 1,
+  spielart: 'rad',
 };
 
 const DATEN = {
   titel: 'Klassen',
   eintraege: ['5a', '6b', '7b', 'Zoë „Z“'],
   gespeichert: [{ name: 'Namen', eintraege: ['Anna', 'Ben'], zeit: 1700000000000 }],
-  einstellungen: { ...STANDARD, dauer: 'kurz', anzahlZiehen: 3 },
+  einstellungen: { ...STANDARD, dauer: 'kurz', anzahlZiehen: 3, spielart: 'roulette' },
   ton: false,
   verlauf: [{ name: '5a', zeit: 1 }],
   entfernt: ['8a'],
@@ -36,6 +37,7 @@ test('Sicherung enthält Rad, Räder und Einstellungen – ohne Verlauf', () => 
   assert.equal(zurueck.gespeichert[0].name, 'Namen');
   assert.equal(zurueck.einstellungen.dauer, 'kurz');
   assert.equal(zurueck.einstellungen.anzahlZiehen, 3);
+  assert.equal(zurueck.einstellungen.spielart, 'roulette');
   assert.equal(zurueck.ton, false);
 });
 

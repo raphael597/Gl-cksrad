@@ -222,6 +222,45 @@ a.nav-btn {
   opacity: 0.6;
 }
 
+.spielart-wahl {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: min(100%, 440px);
+  padding: 5px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: var(--karte);
+}
+
+.spielart-wahl button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--gedimmt);
+  font: inherit;
+  font-size: clamp(0.78rem, 2.5vw, 0.95rem);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.spielart-wahl button[aria-pressed="true"] {
+  background: var(--gold);
+  color: var(--gold-text);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+}
+
+.spielart-wahl button:focus-visible {
+  outline: 3px solid var(--akzent-text);
+  outline-offset: 2px;
+}
+
+.spielansicht[hidden] {
+  display: none;
+}
+
 /* ===== Rad ===== */
 
 .rad-rahmen {
@@ -285,6 +324,244 @@ a.nav-btn {
 
 .nabe:disabled {
   opacity: 1;
+}
+
+/* ===== Slotmaschine und Roulette ===== */
+
+.slot-rahmen,
+.roulette-rahmen {
+  width: min(100%, 72vh, 660px);
+  aspect-ratio: 1;
+  min-height: 420px;
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.4));
+}
+
+.slot-gehaeuse {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(16px, 4vw, 30px);
+  width: 100%;
+  height: 100%;
+  padding: clamp(24px, 6%, 44px);
+  overflow: hidden;
+  border: 9px solid #a86923;
+  border-radius: 48px;
+  background: radial-gradient(circle at 50% 15%, #71365e, #321c3c 58%, #171329);
+  box-shadow: inset 0 0 0 4px #f7cb67, inset 0 -26px 40px rgba(0, 0, 0, 0.45);
+  color: #fff7df;
+}
+
+.slot-lichtleiste {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: #ffe08c;
+  letter-spacing: clamp(8px, 2.8vw, 24px);
+  text-shadow: 0 0 12px #ffc83d;
+}
+
+.slot-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 30px;
+  color: #ffe49b;
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.slot-kopf strong {
+  color: #ffcf55;
+  font-size: 1.4em;
+}
+
+.slot-fenster {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 5px solid #e9b453;
+  border-radius: 22px;
+  background: #1b1325;
+  box-shadow: inset 0 7px 16px rgba(0, 0, 0, 0.7), 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.slot-fenster::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: 3px;
+  right: 3px;
+  top: 50%;
+  border-top: 2px solid rgba(239, 68, 68, 0.7);
+  pointer-events: none;
+}
+
+.slot-walze {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 0.85;
+  padding: 6px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #c8c4bf, #fff 28%, #fff 70%, #cbc8c3);
+  color: #302041;
+  box-shadow: inset 0 3px 9px rgba(0, 0, 0, 0.3);
+}
+
+.slot-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(0.9rem, 2.7vw, 1.55rem);
+  font-weight: 900;
+  text-align: center;
+}
+
+.slot-rahmen.spielt .slot-walze:not(.fertig) .slot-name {
+  filter: blur(1px);
+}
+
+.slot-walze.fertig {
+  background: linear-gradient(180deg, #fff3bb, #fffefa 40%, #ffeb9b);
+  box-shadow: 0 0 24px rgba(255, 211, 96, 0.7);
+}
+
+.slot-fuss,
+.roulette-fuss {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.slot-sockel {
+  position: absolute;
+  bottom: 0;
+  left: 12%;
+  right: 12%;
+  height: 16px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, #5b2737, #d09a37, #5b2737);
+}
+
+.roulette-tisch {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  width: 100%;
+  height: 100%;
+  padding: clamp(18px, 4%, 32px);
+  border: 13px solid #6d421e;
+  border-radius: 100px;
+  background: radial-gradient(ellipse at 50% 20%, #19784f, #075039 65%, #053d2f);
+  box-shadow: inset 0 0 0 4px #be9153, inset 0 0 34px rgba(0, 0, 0, 0.45);
+  color: #fff9e8;
+}
+
+.roulette-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px 0;
+  color: #f7dd9c;
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.roulette-kugel {
+  color: #fff;
+  font-size: 1.6em;
+  text-shadow: 0 2px 8px #052c25, 0 0 12px #fff;
+}
+
+.roulette-status {
+  min-height: 1.5em;
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+.roulette-felder {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 5px;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 7px;
+  border: 2px solid #d1aa6b;
+  border-radius: 15px;
+  scrollbar-color: #b9a077 #064b35;
+}
+
+.roulette-feld {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 6px 8px;
+  border: 2px solid #d3bd91;
+  border-radius: 7px;
+  background: #a72d38;
+  color: white;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.roulette-feld:nth-child(even) {
+  background: #202933;
+}
+
+.roulette-feld .nummer {
+  flex: none;
+  font-size: 0.8em;
+  opacity: 0.75;
+}
+
+.roulette-feld .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roulette-feld.aktiv {
+  z-index: 1;
+  border-color: #fff3bd;
+  box-shadow: 0 0 0 3px #facc15, 0 0 18px #facc15;
+}
+
+.roulette-feld.aktiv::after {
+  content: '●';
+  position: absolute;
+  right: 3px;
+  top: -6px;
+  color: white;
+  font-size: 25px;
+  text-shadow: 0 2px 4px #111;
+}
+
+.roulette-leer {
+  grid-column: 1 / -1;
+  padding: 28px;
+  text-align: center;
 }
 
 .drehen-btn {
@@ -770,6 +1047,11 @@ textarea:disabled {
 }
 
 :root:fullscreen .rad-rahmen {
+  width: min(100%, 76vh);
+}
+
+:root:fullscreen .slot-rahmen,
+:root:fullscreen .roulette-rahmen {
   width: min(100%, 76vh);
 }
 
@@ -1839,12 +2121,29 @@ code {
     width: min(100%, 70vh);
   }
 
+  .slot-rahmen,
+  .roulette-rahmen {
+    width: min(100%, 70vh);
+  }
+
   .admin-panel {
     padding: 0 16px 18px;
   }
 }
 
 @media (max-width: 480px) {
+  .slot-rahmen {
+    aspect-ratio: auto;
+    min-height: 0;
+    height: 390px;
+  }
+
+  .roulette-rahmen {
+    aspect-ratio: auto;
+    min-height: 0;
+    height: 480px;
+  }
+
   .kopf {
     justify-content: center;
   }
