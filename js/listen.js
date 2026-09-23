@@ -229,6 +229,27 @@
 
   window.addEventListener('hashchange', sicherungsLinkPruefen);
 
+  // ---------- Schummel-Link (aus dem entsperrten Admin-Bereich) ----------
+
+  function schummelLinkPruefen() {
+    const treffer = location.hash.match(/^#schummel=(.+)$/);
+    if (!treffer) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+      const paket = Paket.schummelLinkPruefen(Paket.dekodieren(treffer[1]));
+      // Die Empfänger-PIN bleibt erhalten; nur die Regeln dieses Links gelten.
+      const bisher = Speicher.ladeAdmin();
+      App.radLaden(paket.titel, paket.eintraege);
+      Speicher.speichereAdmin(Paket.adminRegelnUebernehmen(bisher, paket));
+      Admin.aktualisieren();
+      App.melden('Geteiltes Rad geladen');
+    } catch (e) {
+      App.melden('Der Link ist ungültig');
+    }
+  }
+
+  window.addEventListener('hashchange', schummelLinkPruefen);
+
   // ---------- Zahlenreihe (z. B. Schülernummern) ----------
 
   $('#btn-zahlenreihe').addEventListener('click', () => {
@@ -280,4 +301,5 @@
 
   geteilteListePruefen();
   sicherungsLinkPruefen();
+  schummelLinkPruefen();
 })();
