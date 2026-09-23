@@ -258,7 +258,7 @@ Auf dem Handy (`fernbedienung.html`):
 | --- | --- |
 | **Live-Karte** | zeigt, was das Rad gerade tut: bereit, dreht (mit Fortschritt und Ziel „→ 7b“), Ergebnis. Knopf **„🎡 Rad drehen“** dreht das Rad am Rechner (ein offenes Ergebnis wird dabei geschlossen), „Ergebnis schließen“ schließt das Ergebnis-Fenster. |
 | **Steuerung aktiv** | Hauptschalter (= „Manipulation aktiv“ im Admin-Bereich) |
-| **🕶 Blind-Modus** | siehe unten – bedienbar, ohne aufs Handy zu schauen |
+| **🕶 Blind-Modus** | siehe unten – bedienbar, ohne aufs Handy zu schauen; gedreht wird nur am Rechner |
 | **Nächstes Ergebnis** | Namen antippen = der nächste Dreh landet dort (mit „immer“ bei jedem Dreh). Nochmal antippen oder „🎲 Zufall“ hebt es auf. Mit **„⚡ sofort“** dreht derselbe Tipp auch gleich. |
 | **Reihenfolge** | vorab festlegen, wer nacheinander drankommt (auch „🎲 Zufall“ dazwischen) – siehe unten |
 | **Chancen** | − / + pro Eintrag (0–10×), 🚫 = nie, „alle normal“; daneben die echte Gewinnchance |
@@ -269,22 +269,31 @@ antippen. Jeder Dreh nimmt dann automatisch den nächsten Eintrag – egal, ob a
 Leertaste) oder vom Handy gedreht wird; auch bei mehreren Gewinnern zählt jede Ziehung einzeln.
 Ein festgelegtes „Nächstes Ergebnis“ hat Vorrang und verbraucht keinen Eintrag der Reihenfolge.
 Steht ein Eintrag gerade nicht im Rad (z. B. schon gezogen und entfernt), wird er übersprungen.
-Ist die Liste leer, gelten wieder die Chancen. Die Reihenfolge lässt sich auch im Admin-Bereich
-am Rechner bearbeiten.
+Ist die Liste leer, gelten wieder die Chancen. Mit **„Jede Person nur einmal“** kann niemand
+doppelt in die Reihenfolge (beim Einschalten fallen vorhandene Doppelte weg, „🎲 Zufall“ darf
+mehrfach vorkommen); ausgeschaltet darf dieselbe Person mehrmals drankommen. Die Reihenfolge und
+der Schalter lassen sich auch im Admin-Bereich am Rechner bearbeiten.
 
 **🕶 Blind-Modus – ohne hinzusehen:** Ein fast schwarzer Vollbildschirm mit vier großen Feldern
 in den Ecken, die man mit dem Daumen ertasten kann. Welcher Name in welcher Ecke liegt, stellst du
 unter „Ecken belegen“ ein (Standard: die ersten vier Einträge; „🎲 Zufall“ = nach Reihenfolge bzw.
-Chancen).
+Chancen). Die Ecken passen sich an: Wird jemand aus dem Rad entfernt, rückt **nur in seiner Ecke**
+der nächste freie Name nach – die anderen Ecken bleiben, wo sie sind, damit man weiter blind tippen
+kann. Kommt die Person zurück ins Rad, bekommt sie ihre Ecke wieder. Im Auswahlfeld steht dann z. B.
+„6b ↻ statt 5b“.
 
 | Geste | Wirkung |
 | --- | --- |
-| Ecke antippen | diesen Namen festlegen **und sofort drehen** – dreht es schon, wird umgelenkt |
-| nach oben wischen | drehen (nach Reihenfolge bzw. Chancen) |
+| Ecke antippen | festlegen, wo das Rad landet – dreht es schon, wird umgelenkt |
+| nach oben wischen | Festlegung aufheben (dann gelten Reihenfolge bzw. Chancen) |
 | nach unten wischen | Blind-Modus verlassen |
 
-Rückmeldung: Auf Android vibriert das Handy 1–4 Mal je nach Ecke, bei einem Fehler (Rechner nicht
-verbunden, zu spät zum Umlenken) einmal lang. Das iPhone lässt Webseiten nicht vibrieren; dort gibt
+Der Blind-Modus **startet das Rad nie selbst**: Gedreht wird immer am Rechner (Knopf, Leertaste,
+Mitte des Rads) – so sieht es für alle echt aus. Die festgelegte Ecke hat einen schwachen Rahmen;
+nach dem Dreh ist die Festlegung verbraucht (außer „immer“ ist an).
+
+Rückmeldung: Auf Android vibriert das Handy 1–4 Mal je nach Ecke, beim Aufheben zweimal etwas länger,
+bei einem Fehler (Rechner nicht verbunden, zu spät zum Umlenken) einmal lang. Das iPhone lässt Webseiten nicht vibrieren; dort gibt
 es ab iOS 18 nur ein kurzes Klacken als Bestätigung (ohne Muster). Der Punkt in der Mitte zeigt den
 Zustand: grün = bereit, gelb = dreht, rot = keine Verbindung.
 

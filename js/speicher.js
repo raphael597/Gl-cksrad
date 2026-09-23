@@ -43,6 +43,7 @@
     naechster: '', // Name des festgelegten nächsten Gewinners
     naechsterDauerhaft: false,
     reihenfolge: [], // vorab festgelegt, wer nacheinander drankommt ('' = Zufall) – siehe Logik
+    reihenfolgeEinmal: false, // true = jede Person höchstens einmal in der Reihenfolge
   };
 
   const kopie = (wert) => JSON.parse(JSON.stringify(wert));
