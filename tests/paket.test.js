@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Paket = require('../js/paket.js');
+const Logik = require('../js/logik.js');
 
 const STANDARD = {
   dauer: 'normal', farben: 'bunt', design: 'dunkel', autoEntfernen: false, konfetti: true,
@@ -74,4 +75,48 @@ test('manipulierte Werte werden bereinigt', () => {
 test('Beschreibung für die Rückfrage', () => {
   const p = Paket.sicherungPruefen(Paket.sicherungErstellen(DATEN), STANDARD);
   assert.equal(Paket.beschreiben(p), 'Rad „Klassen“ mit 4 Einträgen und 1 gespeichertes Rad');
+});
+
+test('Schummel-Link übernimmt Rad und wirksame Admin-Regeln ohne PIN', () => {
+  const admin = {
+    aktiv: true,
+    pin: 'geheim-1234',
+    gewichte: { '5a': 0, '7b': 8, fremdesrad: 10 },
+    naechster: 'Zoë „Z“',
+    naechsterDauerhaft: false,
+  };
+  const link = Paket.schummelLinkErstellen(DATEN, admin);
+  const empfangen = Paket.schummelLinkPruefen(Paket.dekodieren(Paket.kodieren(link)));
+  assert.equal(empfangen.titel, DATEN.titel);
+  assert.deepEqual(empfangen.eintraege, DATEN.eintraege);
+  assert.deepEqual(empfangen.admin, {
+    aktiv: true,
+    gewichte: { '5a': 0, '7b': 8 },
+    naechster: 'Zoë „Z“',
+    naechsterDauerhaft: false,
+  });
+  assert.ok(!JSON.stringify(link).includes('geheim-1234'));
+  assert.equal(Logik.waehleGewinner(empfangen.eintraege, empfangen.admin, () => 0.5).index, 3);
+  empfangen.admin.naechster = '';
+  assert.equal(Logik.gewichtVon('5a', empfangen.admin), 0);
+  assert.equal(Logik.gewichtVon('7b', empfangen.admin), 8);
+  const uebernommen = Paket.adminRegelnUebernehmen({ pin: 'lokale-pin', gewichte: { '5a': 9, '6b': 0, fremdesrad: 3 } }, empfangen);
+  assert.equal(uebernommen.pin, 'lokale-pin');
+  assert.deepEqual(uebernommen.gewichte, { '5a': 0, '7b': 8, fremdesrad: 3 });
+});
+
+test('Schummel-Link verwirft fremde Felder und lehnt ungültige Regeln ab', () => {
+  const link = Paket.schummelLinkErstellen(DATEN, { aktiv: true, gewichte: {}, naechster: '', naechsterDauerhaft: false });
+  const mitPin = Paket.schummelLinkPruefen({ ...link, pin: 'falsch', admin: { ...link.admin, pin: 'falsch' } });
+  assert.equal(mitPin.pin, undefined);
+  assert.equal(mitPin.admin.pin, undefined);
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, typ: 'gluecksrad-sicherung' }));
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, admin: { ...link.admin, gewichte: { '5a': -1 } } }));
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, admin: { ...link.admin, gewichte: { '5a': 11 } } }));
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, admin: { ...link.admin, gewichte: { fremd: 10 } } }));
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, admin: { ...link.admin, naechster: 'Fehlt' } }));
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, eintraege: [] }));
+  assert.throws(() => Paket.schummelLinkPruefen({ ...link, eintraege: ['x'.repeat(101)] }));
+  const ohneFremdenGewinner = Paket.schummelLinkErstellen(DATEN, { aktiv: true, gewichte: {}, naechster: 'Fehlt', naechsterDauerhaft: true });
+  assert.equal(ohneFremdenGewinner.admin.naechster, '');
 });

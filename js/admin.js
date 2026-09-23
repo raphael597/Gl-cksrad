@@ -246,6 +246,17 @@
   $('#admin-simulieren').addEventListener('click', simulieren);
   $('#admin-alle-normal').addEventListener('click', () => aendern((a) => (a.gewichte = {})));
 
+  $('#admin-schummel-link').addEventListener('click', async () => {
+    try {
+      const paket = Paket.schummelLinkErstellen(App.daten, Speicher.ladeAdmin());
+      const link = `${location.href.split('#')[0]}#schummel=${Paket.kodieren(paket)}`;
+      if (await App.kopieren(link)) App.melden('Schummel-Link kopiert');
+      else prompt('Schummel-Link zum Kopieren:', link);
+    } catch (e) {
+      App.melden('Für den Link braucht das Rad 1–500 Einträge mit höchstens 100 Zeichen');
+    }
+  });
+
   $('#admin-pin-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const neu = $('#admin-neue-pin').value.trim();

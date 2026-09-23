@@ -3,8 +3,8 @@
  *
  *   - kodieren/dekodieren: JSON ⇄ Base64url, damit es in einen Link passt
  *   - Sicherung: aktuelles Rad, gespeicherte Räder und Einstellungen – für ein
- *     anderes Gerät oder als Backup. Admin-Einstellungen, PIN und Verlauf gehören
- *     ausdrücklich NICHT dazu.
+ *     anderes Gerät oder als Backup, ausdrücklich ohne Admin, PIN und Verlauf.
+ *   - Schummel-Link: aktuelles Rad und Admin-Regeln, aber niemals die PIN.
  *
  * Alles, was aus einem Link oder einer Datei kommt, ist fremde Eingabe und wird
  * streng geprüft, bevor es irgendwo landet.
@@ -18,6 +18,7 @@
 
   const VERSION = 1;
   const TYP = 'gluecksrad-sicherung';
+  const SCHUMMEL_TYP = 'gluecksrad-schummel-link';
   const MAX_EINTRAEGE = 500;
   const MAX_LAENGE = 100;
   const MAX_RAEDER = 100;
@@ -123,5 +124,85 @@
     return `${rad} mit ${sicherung.eintraege.length} Einträgen und ${n} ${n === 1 ? 'gespeichertes Rad' : 'gespeicherte Räder'}`;
   }
 
-  return { kodieren, dekodieren, eintraegePruefen, sicherungErstellen, sicherungPruefen, beschreiben };
+  // ---------- Schummel-Link ----------
+
+  /**
+   * Ein eigener Link-Typ: nur aktuelles Rad und wirksame Admin-Regeln.
+   * Die PIN und Regeln für andere Räder gehören nicht in einen geteilten Link.
+   */
+  function schummelLinkErstellen(daten, admin) {
+    const namen = new Set(daten.eintraege.map((name) => String(name).trim().toLowerCase()));
+    const gewichte = Object.fromEntries(
+      Object.entries(admin.gewichte || {}).filter(([name]) => namen.has(name))
+    );
+    const naechster = namen.has(String(admin.naechster || '').trim().toLowerCase())
+      ? admin.naechster : '';
+    return schummelLinkPruefen({
+      typ: SCHUMMEL_TYP,
+      v: VERSION,
+      titel: daten.titel,
+      eintraege: daten.eintraege,
+      admin: {
+        aktiv: admin.aktiv,
+        gewichte,
+        naechster,
+        naechsterDauerhaft: admin.naechsterDauerhaft,
+      },
+    });
+  }
+
+  /** Fremde Link-Daten streng prüfen und nur die erlaubten Felder zurückgeben. */
+  function schummelLinkPruefen(roh) {
+    if (!istObjekt(roh) || roh.typ !== SCHUMMEL_TYP || roh.v !== VERSION ||
+        typeof roh.titel !== 'string' || roh.titel.length > MAX_TITEL ||
+        !Array.isArray(roh.eintraege) || roh.eintraege.length < 1 || roh.eintraege.length > MAX_EINTRAEGE ||
+        !roh.eintraege.every((name) => typeof name === 'string' && name.trim() && name.length <= MAX_LAENGE) ||
+        !istObjekt(roh.admin) || typeof roh.admin.aktiv !== 'boolean' ||
+        typeof roh.admin.naechster !== 'string' || typeof roh.admin.naechsterDauerhaft !== 'boolean' ||
+        !istObjekt(roh.admin.gewichte)) {
+      throw new Error('Kein gültiger Schummel-Link');
+    }
+
+    const eintraege = roh.eintraege.map((name) => name.trim());
+    const namen = new Set(eintraege.map((name) => name.toLowerCase()));
+    const gewichte = Object.fromEntries(Object.entries(roh.admin.gewichte).map(([name, wert]) => {
+      if (name !== name.trim().toLowerCase() || !namen.has(name) ||
+          !Number.isInteger(wert) || wert < 0 || wert > 10) {
+        throw new Error('Ungültiges Gewicht im Schummel-Link');
+      }
+      return [name, wert];
+    }));
+    const naechster = roh.admin.naechster.trim();
+    if (naechster && !namen.has(naechster.toLowerCase())) {
+      throw new Error('Festgelegter Gewinner fehlt im Rad');
+    }
+    return {
+      typ: SCHUMMEL_TYP,
+      v: VERSION,
+      titel: roh.titel.trim(),
+      eintraege,
+      admin: {
+        aktiv: roh.admin.aktiv,
+        gewichte,
+        naechster,
+        naechsterDauerhaft: roh.admin.naechsterDauerhaft,
+      },
+    };
+  }
+
+  /** Regeln des verlinkten Rads ersetzen, andere Gewichte und die lokale PIN behalten. */
+  function adminRegelnUebernehmen(bisher, paket) {
+    const namen = new Set(paket.eintraege.map((name) => name.toLowerCase()));
+    const andereGewichte = Object.entries(bisher.gewichte || {}).filter(([name]) => !namen.has(name));
+    return {
+      ...bisher,
+      ...paket.admin,
+      gewichte: Object.fromEntries(andereGewichte.concat(Object.entries(paket.admin.gewichte))),
+    };
+  }
+
+  return {
+    kodieren, dekodieren, eintraegePruefen, sicherungErstellen, sicherungPruefen, beschreiben,
+    schummelLinkErstellen, schummelLinkPruefen, adminRegelnUebernehmen,
+  };
 });

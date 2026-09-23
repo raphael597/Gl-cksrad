@@ -38,8 +38,8 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
   mit einem Klick wechseln, löschen oder ein neues leeres Rad anlegen.
   Unter **„Auf ein anderes Gerät mitnehmen“** gibt es einen Übertragungs-Link bzw. eine
   Sicherungsdatei: aktuelles Rad, alle gespeicherten Räder und Einstellungen – vor dem Übernehmen
-  wird nachgefragt, vorhandene Räder bleiben erhalten. **Admin-Einstellungen werden nicht
-  übertragen**; die stellt man auf jedem Gerät einmal selbst ein (danach bleiben sie dort gespeichert).
+  wird nachgefragt, vorhandene Räder bleiben erhalten. Diese normale Übertragung enthält
+  **keine Admin-Einstellungen**.
 - **👥 Teams**: verteilt alle Einträge zufällig auf eine Anzahl Teams oder auf Teams mit
   fester Größe; Ergebnis als Text kopierbar.
 - **🧰 Werkzeuge**:
@@ -87,7 +87,8 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
 
 Damit geteilte Links auch auf anderen Geräten funktionieren, muss die Seite im Netz liegen –
 am einfachsten mit **Coolify** (siehe [Deployment mit Coolify](#deployment-mit-coolify)).
-Admin-Einstellungen werden dabei **nie** mitgeteilt – sie bleiben im jeweiligen Browser.
+Normale Listen- und Übertragungs-Links enthalten keine Admin-Einstellungen. Nur ein ausdrücklich
+im Admin-Bereich erstellter Schummel-Link nimmt die Regeln mit.
 
 ### Als App installieren
 
@@ -170,8 +171,9 @@ docker run --rm -p 8080:3100 gluecksrad
 ### Gut zu wissen
 
 - **Neue Adresse = neuer Speicher.** Der Browser speichert pro Adresse. Einträge, gespeicherte
-  Räder und Admin-Einstellungen (inkl. PIN) aus der lokalen `index.html` sind online also nicht da –
-  PIN und Gewichte im Browser, mit dem du präsentierst, einmal neu setzen.
+  Räder und Admin-Einstellungen (inkl. PIN) aus der lokalen `index.html` sind online also nicht da.
+  Ein Schummel-Link kann das aktuelle Rad und die Admin-Regeln auf die neue Adresse übertragen;
+  die PIN wird dabei nicht übertragen.
 - **Der Admin-Bereich ist Teil der Seite.** Wer die Adresse kennt, kann ihn im *eigenen* Browser
   öffnen (Standard-PIN `1234`) und im Quelltext sehen, dass es ihn gibt. Deine Einstellungen
   sind dabei nicht erreichbar – sie liegen nur in deinem Browser.
@@ -197,8 +199,18 @@ Nach dem Entsperren bleibt der Bereich bis zum Schließen des Tabs offen; „�
 - **Nächstes Ergebnis festlegen**: Das Rad landet garantiert auf diesem Eintrag,
   entweder nur beim nächsten Dreh oder (mit „dauerhaft“) bei jedem Dreh.
   Das schlägt die Gewichtung.
+- **Schummel-Link kopieren**: erstellt einen Link aus aktuellem Titel, Einträgen, Aktiv-Schalter,
+  Gewichten und festgelegtem Gewinner. Wer ihn öffnet, bekommt Rad und Regeln automatisch in
+  seinen Browser übernommen. Die PIN, gespeicherte Räder und der Verlauf bleiben lokal. Die
+  Regeln gelten beim Empfänger danach auch für weitere Drehungen. Ein einmalig festgelegter
+  Gewinner wird dort nach dem ersten Dreh verbraucht.
 - **Chance / Simuliert**: zeigt die echten Wahrscheinlichkeiten. „1000× simulieren“
   probiert sie aus, ohne dass das Rad sich dreht.
+
+Schummel-Links funktionieren über verschiedene Geräte nur mit einer online erreichbaren
+Webadresse. Die Regeln stehen kodiert im Link und sind für technisch versierte Empfänger lesbar
+und veränderbar. Die Seite hat keinen Server, der den Link geheim halten oder signieren könnte.
+Normale Listen- und Sicherungs-Links übernehmen weiterhin keine Admin-Regeln.
 
 Die Regeln hängen am **Namen** des Eintrags (Groß-/Kleinschreibung egal). Wenn du also „7b“
 sperrst, aus dem Rad löschst und später wieder einträgst, ist sie weiterhin gesperrt.
@@ -259,7 +271,7 @@ impressum.html       Impressum (Platzhalter ausfüllen!)
 datenschutz.html     Datenschutzerklärung (Platzhalter ausfüllen!)
 css/style.css        Aussehen (Dunkel/Hell über CSS-Variablen)
 js/design.js         setzt Hell/Dunkel vor dem ersten Zeichnen (alle Seiten)
-js/paket.js          Übertragungs-Link/Sicherung verpacken und prüfen, ohne DOM, getestet
+js/paket.js          Übertragungs- und Schummel-Links verpacken und prüfen, ohne DOM, getestet
 js/logik.js          Reine Rechenlogik (Gewichtung, Auswahl, Winkel), ohne DOM, getestet
 js/speicher.js       Laden/Speichern im localStorage
 js/rad.js            Zeichnen und Animieren des Rads (Canvas), Farbschemen
