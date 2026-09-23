@@ -83,10 +83,10 @@ Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html
 2. **Branch** wählen (der, auf dem das Glücksrad liegt, z. B. `main` nach dem Mergen).
 3. **Build Pack** von *Nixpacks* auf **Dockerfile** umstellen.
    Base Directory `/`, Dockerfile `/Dockerfile`.
-4. **Ports Exposes**: `80`
+4. **Ports Exposes**: `3100` (darauf hört nginx im Container)
 5. **Domains**: z. B. `https://gluecksrad.deine-domain.de`
    (vorher einen DNS-A-Record auf deinen Server setzen; das Zertifikat holt Coolify automatisch).
-6. Optional unter **Health Checks**: Pfad `/healthz`, Port `80`.
+6. Optional unter **Health Checks**: Pfad `/healthz`, Port `3100`.
    Das Image bringt außerdem einen eigenen Docker-`HEALTHCHECK` mit.
 7. **Deploy** klicken. Mit GitHub App bzw. Webhook wird bei jedem Push automatisch neu ausgerollt.
 
@@ -102,7 +102,7 @@ Das Repository enthält ein fertiges `Dockerfile`: nginx liefert nur `index.html
 
 ```bash
 docker build -t gluecksrad .
-docker run --rm -p 8080:80 gluecksrad
+docker run --rm -p 8080:3100 gluecksrad
 # dann http://localhost:8080 öffnen
 ```
 
