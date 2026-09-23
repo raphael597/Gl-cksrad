@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glücksrad</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎡</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="kopf">
+    <h1 id="titel">Glücksrad</h1>
+    <div class="kopf-aktionen">
+      <button id="btn-ton" class="icon-btn" type="button" title="Ton an/aus" aria-label="Ton an/aus">🔊</button>
+      <button id="btn-vollbild" class="icon-btn" type="button" title="Vollbild" aria-label="Vollbild">⛶</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="buehne" aria-label="Glücksrad">
+      <div class="rad-rahmen">
+        <svg class="zeiger" id="zeiger" viewBox="0 0 60 80" aria-hidden="true">
+          <path d="M30 78 L10 34 A22 22 0 1 1 50 34 Z" />
+          <circle cx="30" cy="25" r="7" />
+        </svg>
+        <canvas id="rad"></canvas>
+        <button id="btn-mitte" class="nabe" type="button" aria-label="Rad drehen">DREH!</button>
+      </div>
+      <button id="btn-drehen" class="drehen-btn" type="button">Rad drehen</button>
+      <p class="hinweis">Leertaste dreht das Rad</p>
+    </section>
+
+    <aside class="seitenleiste">
+      <div class="karte">
+        <div class="karte-kopf">
+          <h2>Einträge <span id="anzahl" class="badge">0</span></h2>
+        </div>
+        <textarea id="eintraege" spellcheck="false" placeholder="Ein Eintrag pro Zeile, z. B.&#10;5a&#10;5b&#10;6a"></textarea>
+        <div class="knopfreihe">
+          <button id="btn-mischen" class="btn" type="button">🔀 Mischen</button>
+          <button id="btn-sortieren" class="btn" type="button">↕ Sortieren</button>
+        </div>
+      </div>
+
+      <div class="karte">
+        <div class="karte-kopf">
+          <h2>Verlauf</h2>
+          <button id="btn-verlauf-leeren" class="link-btn" type="button">leeren</button>
+        </div>
+        <ol id="verlauf" class="verlauf"></ol>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Ergebnis -->
+  <dialog id="ergebnis" class="ergebnis">
+    <!-- Konfetti liegt im Dialog, damit es über dem abgedunkelten Hintergrund fliegt -->
+    <canvas id="konfetti" class="konfetti" aria-hidden="true"></canvas>
+    <div class="ergebnis-inhalt">
+      <p class="ergebnis-label">Das Rad hat entschieden:</p>
+      <p class="ergebnis-name" id="ergebnis-name"></p>
+      <div class="knopfreihe">
+        <button id="btn-entfernen" class="btn" type="button">Aus dem Rad entfernen</button>
+        <button id="btn-weiter" class="btn btn-gold" type="button" autofocus>Weiter</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Admin-Bereich: wird nur über einen versteckten Zugang geöffnet (siehe README) -->
+  <dialog id="admin" class="admin">
+    <form id="admin-login" class="admin-login" autocomplete="off">
+      <h2>🔒 Einstellungen</h2>
+      <label for="admin-pin">PIN</label>
+      <input id="admin-pin" type="password" inputmode="numeric" autocomplete="off">
+      <p id="admin-fehler" class="fehler" hidden>Falsche PIN</p>
+      <div class="knopfreihe">
+        <button id="admin-abbrechen" class="btn" type="button">Abbrechen</button>
+        <button class="btn btn-gold" type="submit">Entsperren</button>
+      </div>
+    </form>
+
+    <div id="admin-panel" class="admin-panel" hidden>
+      <header class="admin-kopf">
+        <h2>Admin-Bereich</h2>
+        <button id="admin-schliessen" class="icon-btn" type="button" aria-label="Schließen">✕</button>
+      </header>
+
+      <section class="admin-abschnitt">
+        <label class="schalter">
+          <input id="admin-aktiv" type="checkbox">
+          <span class="schalter-bahn"></span>
+          <span>Manipulation aktiv</span>
+        </label>
+        <p id="admin-modus" class="modus"></p>
+      </section>
+
+      <section class="admin-abschnitt">
+        <h3>Nächstes Ergebnis festlegen</h3>
+        <select id="admin-naechster"></select>
+        <label class="haken">
+          <input id="admin-dauerhaft" type="checkbox">
+          dauerhaft (sonst nur für den nächsten Dreh)
+        </label>
+      </section>
+
+      <section class="admin-abschnitt">
+        <h3>Gewichtung</h3>
+        <p class="klein">
+          0 = kommt <strong>nie</strong> dran · 1 = normal · höher = häufiger.
+          Auf dem Rad sind trotzdem alle Felder gleich groß.
+        </p>
+        <div class="tabelle-huelle">
+          <table class="admin-tabelle">
+            <thead>
+              <tr><th>Eintrag</th><th>Gewicht</th><th class="zahl">Chance</th><th class="zahl">Simuliert</th></tr>
+            </thead>
+            <tbody id="admin-tabelle"></tbody>
+          </table>
+        </div>
+        <div class="knopfreihe">
+          <button id="admin-simulieren" class="btn" type="button">🎲 1000× simulieren</button>
+          <button id="admin-alle-normal" class="btn" type="button">Alle auf normal</button>
+        </div>
+      </section>
+
+      <section class="admin-abschnitt">
+        <h3>PIN ändern</h3>
+        <form id="admin-pin-form" class="pin-form" autocomplete="off">
+          <input id="admin-neue-pin" type="password" inputmode="numeric" minlength="4" placeholder="neue PIN (mind. 4 Zeichen)" required>
+          <button class="btn" type="submit">Speichern</button>
+        </form>
+        <p id="admin-pin-info" class="klein" hidden>PIN gespeichert.</p>
+      </section>
+
+      <footer class="admin-fuss">
+        <button id="admin-sperren" class="btn" type="button">🔒 Sperren</button>
+        <button id="admin-reset" class="btn btn-gefahr" type="button">Admin-Einstellungen zurücksetzen</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <script src="js/logik.js"></script>
+  <script src="js/speicher.js"></script>
+  <script src="js/effekte.js"></script>
+  <script src="js/rad.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

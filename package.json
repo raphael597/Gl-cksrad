@@ -1,0 +1,9 @@
+{
+  "name": "gluecksrad",
+  "version": "1.0.0",
+  "description": "Glücksrad mit verstecktem Admin-Bereich – reines HTML/CSS/JavaScript",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
