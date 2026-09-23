@@ -101,13 +101,26 @@
     }, 2600);
   }
 
+  // Safari auf dem iPhone kann nicht vibrieren. Ein Schalter-Element (<input switch>)
+  // löst beim Umschalten aber ein kurzes Klacken aus (iOS 18+) – nur ein Klacken, kein Muster.
+  const haptik = document.createElement('label');
+  haptik.className = 'fb-haptik';
+  haptik.setAttribute('aria-hidden', 'true');
+  haptik.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+  document.body.appendChild(haptik);
+
+  /** Kurzes Signal: Zahl = Millisekunden, Liste = Muster (an, aus, an …). */
   function vibrieren(ms) {
     try {
       if (navigator.vibrate) navigator.vibrate(ms);
+      else haptik.click();
     } catch (e) {
       /* egal */
     }
   }
+
+  /** Etwas hat nicht geklappt: ein langes Brummen, deutlich anders als die kurzen. */
+  const fehlerSignal = () => vibrieren(350);
 
   /** Bildschirm anlassen, solange die Fernbedienung offen ist. */
   async function wachHalten() {
@@ -144,6 +157,7 @@
         gewichte,
         naechster: typeof a.naechster === 'string' ? a.naechster.slice(0, 100) : '',
         naechsterDauerhaft: a.naechsterDauerhaft === true,
+        reihenfolge: texte(a.reihenfolge, Logik.MAX_REIHENFOLGE),
       },
       // Ein zwischengespeicherter Stand kann alt sein – die Drehung darin nicht anzeigen.
       dreh: !ausZwischenspeicher && istObjekt(d) && typeof d.ziel === 'string'
@@ -161,7 +175,7 @@
         : [],
       quittung: istObjekt(roh.quittungen) && Object.prototype.hasOwnProperty.call(roh.quittungen, geraet) ? zahl(roh.quittungen[geraet]) : 0,
       antwort: istObjekt(antwort) && antwort.geraet === geraet && Number.isFinite(antwort.nr) && typeof antwort.text === 'string'
-        ? { nr: antwort.nr, text: antwort.text.slice(0, 120) }
+        ? { nr: antwort.nr, text: antwort.text.slice(0, 120), ok: antwort.art === 'ok' }
         : null,
     };
   }
@@ -176,6 +190,7 @@
     if (neu.antwort && neu.antwort.nr > letzteAntwort) {
       letzteAntwort = neu.antwort.nr;
       melden(neu.antwort.text);
+      if (!neu.antwort.ok) fehlerSignal();
     }
     if (neu.dreh) {
       const jetzt = performance.now();
@@ -276,6 +291,7 @@
     if (typeof a.naechster === 'string') neu.naechster = a.naechster;
     if (typeof a.naechsterDauerhaft === 'boolean') neu.naechsterDauerhaft = a.naechsterDauerhaft;
     if (a.alleNormal) neu.gewichte = {};
+    if (Array.isArray(a.reihenfolge)) neu.reihenfolge = Logik.reihenfolgeAendern(admin.reihenfolge, a.reihenfolge);
     if (a.gewichte) {
       for (const [k, w] of Object.entries(a.gewichte)) {
         if (w === 1) delete neu.gewichte[k];
@@ -292,6 +308,8 @@
     if (neu.alleNormal) ergebnis.gewichte = neu.gewichte;
     else if (alt.gewichte || neu.gewichte) ergebnis.gewichte = Object.assign({}, alt.gewichte, neu.gewichte);
     if (!ergebnis.gewichte) delete ergebnis.gewichte;
+    // Schritte der Reihenfolge hintereinander ausführen
+    if (alt.reihenfolge || neu.reihenfolge) ergebnis.reihenfolge = (alt.reihenfolge || []).concat(neu.reihenfolge || []);
     return ergebnis;
   }
 
@@ -325,7 +343,7 @@
 
   // ---------- Anzeige ----------
 
-  const regeln = () => lokal || (stand && stand.admin) || { aktiv: false, gewichte: {}, naechster: '', naechsterDauerhaft: false };
+  const regeln = () => lokal || (stand && stand.admin) || { aktiv: false, gewichte: {}, naechster: '', naechsterDauerhaft: false, reihenfolge: [] };
 
   /** Einträge ohne Doppelte, in Rad-Reihenfolge. */
   function eindeutig(eintraege) {
@@ -339,13 +357,13 @@
   }
 
   function chancenBerechnen(a) {
-    const { wahrscheinlichkeiten, modus } = Logik.analyse(stand.eintraege, a, stand.optionen);
+    const analyse = Logik.analyse(stand.eintraege, a, stand.optionen);
     const chance = {};
     stand.eintraege.forEach((name, i) => {
       const k = schluessel(name);
-      chance[k] = (chance[k] || 0) + wahrscheinlichkeiten[i];
+      chance[k] = (chance[k] || 0) + analyse.wahrscheinlichkeiten[i];
     });
-    return { chance, modus };
+    return { chance, analyse };
   }
 
   function zeichnen() {
@@ -357,21 +375,27 @@
 
     const a = regeln();
     const namen = stand ? eindeutig(stand.eintraege) : [];
-    const { chance, modus } = stand ? chancenBerechnen(a) : { chance: {}, modus: 'fair' };
+    const { chance, analyse } = stand
+      ? chancenBerechnen(a)
+      : { chance: {}, analyse: { modus: 'fair', quelle: '', reihenfolgePos: -1 } };
+    const { modus } = analyse;
 
     $('#fb-rad-titel').textContent = stand && stand.titel ? stand.titel : 'Glücksrad';
     document.title = stand && stand.titel ? `Fernbedienung – ${stand.titel}` : 'Fernbedienung – Glücksrad';
 
-    liveZeichnen(a);
+    liveZeichnen(a, analyse);
     $('#fb-aktiv').checked = a.aktiv;
     $('#fb-dauerhaft').checked = a.naechsterDauerhaft;
     $('#fb-steuerung').classList.toggle('fb-inaktiv', !a.aktiv);
     const modusEl = $('#fb-modus');
-    modusEl.textContent = modusText(modus, a, namen);
+    modusEl.textContent = modusText(analyse, a, namen);
     modusEl.dataset.modus = a.aktiv ? modus : 'fair';
-    chipsZeichnen(namen, chance, a);
+    chipsZeichnen(namen, chance, a, analyse);
+    reiheZeichnen(namen, a, analyse);
     gewichteZeichnen(namen, chance, a);
     verlaufZeichnen();
+    eckenWahlZeichnen(namen);
+    blindZeichnen(namen);
   }
 
   function verbindungZeichnen() {
@@ -394,7 +418,7 @@
 
   const radDa = () => verbindung === 'online' && praesenz.anzeigen > 0 && stand;
 
-  function liveZeichnen(a) {
+  function liveZeichnen(a, analyse) {
     const karte = $('#fb-live');
     const label = $('#fb-live-label');
     const name = $('#fb-live-name');
@@ -449,9 +473,14 @@
     } else {
       label.textContent = stand.anzahlZiehen > 1 ? `Bereit · ${stand.anzahlZiehen} Gewinner` : 'Bereit';
       const fest = a.aktiv && a.naechster && stand.eintraege.some((n) => schluessel(n) === schluessel(a.naechster));
+      const ausReihe = analyse.modus === 'erzwungen' && analyse.quelle === 'reihenfolge';
       if (fest) {
         name.textContent = a.naechster;
         info.textContent = a.naechsterDauerhaft ? 'Jeder Dreh landet hier.' : 'Der nächste Dreh landet hier.';
+      } else if (ausReihe) {
+        const danach = a.reihenfolge.length - analyse.reihenfolgePos - 1;
+        name.textContent = a.reihenfolge[analyse.reihenfolgePos];
+        info.textContent = `Aus deiner Reihenfolge${danach > 0 ? ` – danach noch ${danach}` : ' – der letzte Eintrag'}.`;
       } else {
         name.textContent = '🎲 Zufall';
         name.classList.add('fb-zufall');
@@ -510,13 +539,14 @@
     requestAnimationFrame(schritt);
   }
 
-  function modusText(modus, a, namen) {
+  function modusText({ modus, quelle, reihenfolgePos }, a, namen) {
     if (!stand) return '';
     if (!a.aktiv) return 'Aus – das Rad dreht fair, alle haben die gleiche Chance.';
     if (namen.length === 0) return 'Keine Einträge im Rad.';
     if (a.naechster && !namen.some((n) => schluessel(n) === schluessel(a.naechster))) {
       return `„${a.naechster}“ steht nicht im Rad und wird ignoriert.`;
     }
+    if (modus === 'erzwungen' && quelle === 'reihenfolge') return `Der nächste Dreh landet auf „${a.reihenfolge[reihenfolgePos]}“ (Reihenfolge).`;
     if (modus === 'erzwungen') return `${a.naechsterDauerhaft ? 'Jeder Dreh landet' : 'Der nächste Dreh landet'} auf „${a.naechster}“.`;
     if (modus === 'notfall') return '⚠️ Alle stehen auf „nie“ – das Rad wählt deshalb fair aus.';
     const gesperrt = namen.filter((n) => Logik.gewichtVon(n, a) === 0).length;
@@ -526,7 +556,7 @@
       : 'An – deine Chancen gelten.';
   }
 
-  function chipsZeichnen(namen, chance, a) {
+  function chipsZeichnen(namen, chance, a, analyse) {
     const huelle = $('#fb-chips');
     const signatur = JSON.stringify(namen);
     if (huelle.dataset.signatur !== signatur) {
@@ -538,6 +568,8 @@
     const imRad = a.naechster && namen.some((n) => schluessel(n) === schluessel(a.naechster));
     const gewaehlt = a.aktiv && imRad ? schluessel(a.naechster) : '';
     const ziel = radDa() && stand.dreh ? schluessel(stand.dreh.ziel) : null;
+    const ausReihe = !gewaehlt && analyse.quelle === 'reihenfolge';
+    const reihenKopf = ausReihe && analyse.modus === 'erzwungen' ? schluessel(a.reihenfolge[analyse.reihenfolgePos]) : null;
 
     huelle.querySelectorAll('.fb-chip').forEach((chip) => {
       const k = chip.dataset.key;
@@ -546,10 +578,11 @@
       chip.classList.toggle('gewaehlt', an);
       chip.setAttribute('aria-pressed', String(an));
       if (k === '') {
-        info.textContent = a.aktiv ? 'nach Chancen' : 'fair';
+        info.textContent = !a.aktiv ? 'fair' : ausReihe ? 'Reihenfolge' : 'nach Chancen';
         return;
       }
       chip.classList.toggle('ziel', k === ziel);
+      chip.classList.toggle('als-naechstes', k === reihenKopf);
       chip.classList.toggle('gesperrt', a.aktiv && Logik.gewichtVon(k, a) === 0);
       info.textContent = prozent(chance[k] || 0);
     });
@@ -670,15 +703,232 @@
     return aenderung;
   }
 
+  /**
+   * Ein Tipp: Ergebnis festlegen und sofort drehen ('' = ohne Festlegung, also
+   * Reihenfolge bzw. Chancen). Läuft schon eine Drehung, wird sie umgelenkt.
+   */
+  function festlegenUndDrehen(name) {
+    if (!radDa()) {
+      melden('Der Rechner ist nicht verbunden.');
+      fehlerSignal();
+      return;
+    }
+    const aenderung = name ? mitAktiv({ naechster: name }) : { naechster: '' };
+    if (stand.dreh || stand.serie) {
+      regelnAendern(aenderung);
+      return;
+    }
+    lokal = regelnAnwenden(lokal || stand.admin, aenderung);
+    zeichnen();
+    const meineNr = ++nr;
+    gesendetBis = meineNr;
+    befehlSenden({ typ: 'drehen', aenderung }, meineNr).then((ok) => {
+      if (ok) return;
+      lokal = null;
+      zeichnen();
+      fehlerSignal();
+    });
+  }
+
+  const sofortAn = () => speicherLesen().sofort === true;
+
   $('#fb-chips').addEventListener('click', (e) => {
     const chip = e.target.closest('.fb-chip');
     if (!chip || !stand) return;
     vibrieren(12);
     const a = regeln();
     const name = chip.dataset.name;
+    if (sofortAn()) {
+      festlegenUndDrehen(name);
+      return;
+    }
     const schonGewaehlt = a.aktiv && a.naechster && schluessel(a.naechster) === schluessel(name);
     if (!name || schonGewaehlt) regelnAendern({ naechster: '' });
     else regelnAendern(mitAktiv({ naechster: name }));
+  });
+
+  $('#fb-sofort').checked = sofortAn();
+  $('#fb-sofort').addEventListener('change', (e) => {
+    speicherSchreiben({ sofort: e.target.checked });
+    melden(e.target.checked ? 'Antippen dreht jetzt sofort' : 'Antippen legt nur fest');
+  });
+
+  // ---------- Reihenfolge ----------
+
+  function reiheZeichnen(namen, a, analyse) {
+    const liste = $('#fb-reihe');
+    const imRad = new Set(namen.map(schluessel));
+    const kopf = analyse.quelle === 'reihenfolge' ? analyse.reihenfolgePos : -1;
+    liste.textContent = '';
+    if (a.reihenfolge.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'leer';
+      li.textContent = 'Leer – gezogen wird nach deinen Chancen.';
+      liste.appendChild(li);
+    }
+    a.reihenfolge.forEach((name, pos) => {
+      const li = document.createElement('li');
+      li.dataset.pos = pos;
+      li.dataset.name = name;
+      li.classList.toggle('kopf', pos === kopf);
+      li.classList.toggle('fehlt', name !== '' && !imRad.has(schluessel(name)));
+      const text = document.createElement('span');
+      text.textContent = name || '🎲 Zufall';
+      const weg = document.createElement('button');
+      weg.type = 'button';
+      weg.textContent = '✕';
+      weg.setAttribute('aria-label', `${name || 'Zufall'} streichen`);
+      li.append(text, weg);
+      liste.appendChild(li);
+    });
+    $('#fb-reihe-leeren').hidden = a.reihenfolge.length === 0;
+
+    const huelle = $('#fb-reihe-namen');
+    const signatur = JSON.stringify(namen);
+    if (huelle.dataset.signatur === signatur) return;
+    huelle.dataset.signatur = signatur;
+    huelle.textContent = '';
+    for (const name of [''].concat(namen)) {
+      const knopf = document.createElement('button');
+      knopf.type = 'button';
+      knopf.className = 'fb-mini-chip';
+      knopf.dataset.name = name;
+      knopf.textContent = name || '🎲 Zufall';
+      huelle.appendChild(knopf);
+    }
+  }
+
+  const reiheAendern = (schritte, aktivieren = false) => {
+    if (!stand) return;
+    const aenderung = { reihenfolge: schritte };
+    regelnAendern(aktivieren ? mitAktiv(aenderung) : aenderung);
+  };
+
+  $('#fb-reihe-namen').addEventListener('click', (e) => {
+    const knopf = e.target.closest('.fb-mini-chip');
+    if (!knopf) return;
+    vibrieren(8);
+    if (regeln().reihenfolge.length >= Logik.MAX_REIHENFOLGE) {
+      melden(`Höchstens ${Logik.MAX_REIHENFOLGE} Einträge`);
+      return;
+    }
+    reiheAendern([{ plus: knopf.dataset.name }], true);
+  });
+
+  $('#fb-reihe').addEventListener('click', (e) => {
+    const zeile = e.target.closest('button') && e.target.closest('li[data-pos]');
+    if (zeile) reiheAendern([{ minus: Number(zeile.dataset.pos), name: zeile.dataset.name }]);
+  });
+
+  $('#fb-reihe-leeren').addEventListener('click', () => reiheAendern([{ leeren: true }]));
+
+  // ---------- Blind-Modus ----------
+
+  const ECKEN = 4;
+
+  /** Belegung der vier Ecken: gespeichert oder – noch frei – die ersten Einträge des Rads. */
+  function ecken(namen) {
+    const gespeichert = speicherLesen().ecken;
+    const liste = Array.isArray(gespeichert) ? gespeichert.slice(0, ECKEN) : [];
+    const frei = namen.filter((n) => !liste.some((x) => typeof x === 'string' && schluessel(x) === schluessel(n)));
+    return Array.from({ length: ECKEN }, (_, i) => (typeof liste[i] === 'string' ? liste[i] : frei.shift() || ''));
+  }
+
+  function eckenWahlZeichnen(namen) {
+    const belegt = ecken(namen);
+    document.querySelectorAll('#fb-blind-wahl select').forEach((auswahl) => {
+      const i = Number(auswahl.dataset.ecke);
+      if (document.activeElement === auswahl) return;
+      const optionen = [['', '🎲 Zufall (Reihenfolge / Chancen)']].concat(namen.map((n) => [n, n]));
+      const wert = belegt[i];
+      if (wert && !namen.some((n) => schluessel(n) === schluessel(wert))) optionen.push([wert, `${wert} (nicht im Rad)`]);
+      auswahl.textContent = '';
+      for (const [w, t] of optionen) {
+        const opt = document.createElement('option');
+        opt.value = w;
+        opt.textContent = t;
+        auswahl.appendChild(opt);
+      }
+      auswahl.value = optionen.find(([w]) => schluessel(w) === schluessel(wert))[0];
+    });
+  }
+
+  $('#fb-blind-wahl').addEventListener('change', (e) => {
+    const auswahl = e.target.closest('select[data-ecke]');
+    if (!auswahl) return;
+    const belegt = ecken(stand ? eindeutig(stand.eintraege) : []);
+    belegt[Number(auswahl.dataset.ecke)] = auswahl.value;
+    speicherSchreiben({ ecken: belegt });
+    zeichnen();
+  });
+
+  const blind = $('#fb-blind');
+
+  function blindZeichnen(namen) {
+    if (blind.hidden) return;
+    const belegt = ecken(namen);
+    blind.querySelectorAll('.fb-blind-feld').forEach((feld) => {
+      feld.querySelector('span').textContent = belegt[Number(feld.dataset.ecke)] || '🎲';
+    });
+    $('#fb-blind-punkt').dataset.status = !radDa() ? 'aus' : stand.dreh || stand.serie ? 'dreht' : 'bereit';
+  }
+
+  let hilfeTimer = null;
+  function blindStarten() {
+    blind.hidden = false;
+    const hilfe = $('#fb-blind-hilfe');
+    hilfe.classList.remove('weg');
+    clearTimeout(hilfeTimer);
+    hilfeTimer = setTimeout(() => hilfe.classList.add('weg'), 3500);
+    try {
+      const vollbild = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      if (vollbild && vollbild.catch) vollbild.catch(() => {});
+    } catch (e) {
+      /* iPhone: kein Vollbild für Webseiten – der schwarze Bildschirm reicht */
+    }
+    wachHalten();
+    zeichnen();
+  }
+
+  function blindBeenden() {
+    blind.hidden = true;
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  }
+
+  $('#fb-blind-start').addEventListener('click', blindStarten);
+
+  // Gesten: Tippen auf eine Ecke, nach oben wischen = drehen, nach unten = zurück.
+  let beruehrung = null;
+  blind.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary) return;
+    const feld = e.target.closest('.fb-blind-feld');
+    beruehrung = { x: e.clientX, y: e.clientY, ecke: feld ? Number(feld.dataset.ecke) : -1 };
+    if (blind.setPointerCapture) blind.setPointerCapture(e.pointerId);
+  });
+  blind.addEventListener('pointercancel', () => (beruehrung = null));
+  blind.addEventListener('pointerup', (e) => {
+    const b = beruehrung;
+    beruehrung = null;
+    if (!b || !e.isPrimary) return;
+    const dx = e.clientX - b.x;
+    const dy = e.clientY - b.y;
+    if (Math.abs(dy) > 70 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+      if (dy > 0) {
+        blindBeenden();
+      } else {
+        vibrieren([20, 60, 20, 60, 20]);
+        befehlSenden({ typ: 'drehen' }).then((ok) => ok || fehlerSignal());
+      }
+      return;
+    }
+    if (Math.hypot(dx, dy) > 30 || b.ecke < 0) return;
+    // Ecke 1–4 = 1–4 kurze Stöße (Android), damit man ohne Hinsehen merkt, welche es war.
+    vibrieren(Array.from({ length: b.ecke * 2 + 1 }, (_, i) => (i % 2 ? 90 : 35)));
+    const feld = blind.querySelector(`[data-ecke="${b.ecke}"]`);
+    feld.classList.remove('blitz');
+    void feld.offsetWidth;
+    feld.classList.add('blitz');
+    festlegenUndDrehen(ecken(stand ? eindeutig(stand.eintraege) : [])[b.ecke]);
   });
 
   $('#fb-gewichte').addEventListener('click', (e) => {

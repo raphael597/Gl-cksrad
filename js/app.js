@@ -25,7 +25,7 @@
   let serieLaeuft = false; // mehrere Gewinner werden gerade nacheinander gezogen
   let serieStand = null; // { gesamt, gezogen } während einer Serie
   let letzteSerie = []; // Namen der letzten Serie – für "Alle zurück ins Rad"
-  let aktuellerDreh = null; // { eintraege, index, optionen, erzwungen, verbraucht } – solange das Rad dreht
+  let aktuellerDreh = null; // { eintraege, index, optionen, erzwungen, verbraucht, animation } – solange das Rad dreht
   let ergebnisStand = null; // { name } oder { liste } – solange das Ergebnis-Fenster offen ist
 
   const eingabe = $('#eintraege');
@@ -41,6 +41,19 @@
   }
 
   Admin.init({ holeEintraege: () => daten.eintraege, holeOptionen: ziehOptionen, beiAenderung: () => regelnGeaendert() });
+
+  /**
+   * Was ein Dreh nach dieser Auswahl verbraucht: den einmalig festgelegten Gewinner
+   * ({ art: 'naechster', name }), einen Eintrag der Reihenfolge ({ art: 'reihenfolge',
+   * pos, name }) oder nichts (null).
+   */
+  function verbrauchVon(auswahl, admin) {
+    if (auswahl.quelle === 'naechster') return admin.naechsterDauerhaft ? null : { art: 'naechster', name: admin.naechster };
+    if (auswahl.quelle === 'reihenfolge') {
+      return { art: 'reihenfolge', pos: auswahl.reihenfolgePos, name: admin.reihenfolge[auswahl.reihenfolgePos] };
+    }
+    return null;
+  }
 
   /** Andere Module (z. B. die Live-Fernbedienung) über Änderungen am Rad informieren. */
   function zustandMelden() {
@@ -305,8 +318,7 @@
       index: auswahl.index,
       optionen,
       erzwungen,
-      // Name des einmalig festgelegten Gewinners, den dieser Dreh verbraucht
-      verbraucht: erzwungen && !admin.naechsterDauerhaft ? admin.naechster : '',
+      verbraucht: verbrauchVon(auswahl, admin),
       // Rad oder Slotmaschine/Roulette – beide können laufInfo() und umlenken()
       animation: ansicht === 'rad' ? rad : spielansichten,
     };
@@ -329,14 +341,19 @@
     const index = ansicht === 'rad' ? Logik.indexUnterZeiger(rad.rotation, eintraege.length) : dreh.index;
     const name = eintraege[index];
 
-    // Ein einmalig festgelegter Gewinner ist jetzt verbraucht – außer er wurde
-    // während der Drehung geändert und kam nicht mehr rechtzeitig zum Zug.
-    if (dreh.verbraucht) {
+    // Festgelegter Gewinner bzw. Eintrag der Reihenfolge ist jetzt verbraucht – außer
+    // er wurde während der Drehung geändert und kam nicht mehr rechtzeitig zum Zug.
+    const v = dreh.verbraucht;
+    if (v) {
       const aktuell = Speicher.ladeAdmin();
-      if (!aktuell.naechsterDauerhaft && Logik.schluessel(aktuell.naechster || '') === Logik.schluessel(dreh.verbraucht)) {
+      if (v.art === 'naechster' && !aktuell.naechsterDauerhaft && Logik.schluessel(aktuell.naechster || '') === Logik.schluessel(v.name)) {
         aktuell.naechster = '';
         Speicher.speichereAdmin(aktuell);
+      } else if (v.art === 'reihenfolge') {
+        aktuell.reihenfolge = Logik.reihenfolgeVerbrauchen(aktuell.reihenfolge, v.pos, v.name);
+        Speicher.speichereAdmin(aktuell);
       }
+      Admin.aktualisieren();
     }
 
     daten.verlauf.unshift({ name, zeit: Date.now() });
@@ -355,10 +372,15 @@
   function umlenkenPruefen() {
     const dreh = aktuellerDreh;
     if (!dreh) return '';
-    const admin = Speicher.ladeAdmin();
-    const { wahrscheinlichkeiten, modus } = Logik.analyse(dreh.eintraege, admin, dreh.optionen);
-    const erzwungen = modus === 'erzwungen';
-    const verbraucht = erzwungen && !admin.naechsterDauerhaft ? admin.naechster : '';
+    // Die Reihenfolge plant künftige Drehungen: Änderungen daran lenken nur um,
+    // wenn diese Drehung selbst aus der Reihenfolge stammt.
+    const gespeichert = Speicher.ladeAdmin();
+    const ausReihe = dreh.verbraucht && dreh.verbraucht.art === 'reihenfolge';
+    const admin = ausReihe ? gespeichert : Object.assign({}, gespeichert, { reihenfolge: [] });
+    const analyse = Logik.analyse(dreh.eintraege, admin, dreh.optionen);
+    const { wahrscheinlichkeiten } = analyse;
+    const erzwungen = analyse.modus === 'erzwungen';
+    const verbraucht = verbrauchVon(analyse, admin);
 
     // Das bisherige Ziel bleibt, solange es erlaubt ist – es sei denn, es war nur
     // festgelegt und die Festlegung ist jetzt aufgehoben: dann neu auslosen.

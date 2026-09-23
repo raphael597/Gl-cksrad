@@ -223,3 +223,55 @@ test('Roulette-Kugel: mit genug Restweg immer, kurz vor Schluss nicht mehr', () 
   // Nur noch ein halbes Feld übrig, Ziel liegt ein halbes Brett entfernt
   assert.equal(Logik.umlenkSchritte({ position: 5.5, rest: 0.5, restzeit: 100, index: 11, anzahl }), null);
 });
+
+// ---------- Reihenfolge ----------
+
+test('Reihenfolge: der erste Eintrag, der im Rad steht, wird erzwungen', () => {
+  const admin = { aktiv: true, gewichte: { '7b': 0 }, reihenfolge: ['9z', '7b', '5a'] };
+  const a = Logik.analyse(KLASSEN, admin);
+  assert.equal(a.modus, 'erzwungen');
+  assert.equal(a.quelle, 'reihenfolge');
+  assert.equal(a.reihenfolgePos, 1); // „9z“ steht nicht im Rad → übersprungen
+  assert.equal(KLASSEN[Logik.waehleGewinner(KLASSEN, admin, Math.random).index], '7b'); // schlägt auch Gewicht 0
+});
+
+test('Reihenfolge: festgelegter nächster Gewinner hat Vorrang, ausgeschaltet gilt nichts', () => {
+  const admin = { aktiv: true, naechster: '6a', reihenfolge: ['7b'] };
+  assert.equal(Logik.analyse(KLASSEN, admin).quelle, 'naechster');
+  assert.equal(KLASSEN[Logik.waehleGewinner(KLASSEN, admin, Math.random).index], '6a');
+  const aus = Logik.analyse(KLASSEN, { ...admin, aktiv: false });
+  assert.equal(aus.modus, 'fair');
+  assert.equal(aus.quelle, '');
+});
+
+test('Reihenfolge: „Zufall“-Eintrag lässt die Gewichte entscheiden', () => {
+  const admin = { aktiv: true, gewichte: { '5a': 0 }, reihenfolge: ['', '7b'] };
+  const a = Logik.analyse(KLASSEN, admin);
+  assert.equal(a.modus, 'gewichtet');
+  assert.equal(a.quelle, 'reihenfolge');
+  assert.equal(a.reihenfolgePos, 0);
+  assert.equal(a.wahrscheinlichkeiten[0], 0);
+});
+
+test('Reihenfolge ändern: anhängen, streichen, leeren, Grenzen', () => {
+  let liste = Logik.reihenfolgeAendern([], [{ plus: ' 7b ' }, { plus: '' }, { plus: '5a' }, { plus: '7b' }]);
+  assert.deepEqual(liste, ['7b', '', '5a', '7b']);
+  liste = Logik.reihenfolgeAendern(liste, [{ minus: 3, name: '7B' }]);
+  assert.deepEqual(liste, ['7b', '', '5a']);
+  // Position passt nicht mehr (z. B. schon verbraucht) → erster passender Name
+  liste = Logik.reihenfolgeAendern(liste, [{ minus: 0, name: '5a' }]);
+  assert.deepEqual(liste, ['7b', '']);
+  assert.deepEqual(Logik.reihenfolgeAendern(liste, [{ leeren: true }, { plus: '8a' }]), ['8a']);
+  assert.deepEqual(Logik.reihenfolgeAendern(['x'], [null, 5, { minus: 'a' }, { plus: 3 }]), ['x']);
+  const voll = Logik.reihenfolgeAendern([], Array.from({ length: 80 }, (_, i) => ({ plus: String(i) })));
+  assert.equal(voll.length, Logik.MAX_REIHENFOLGE);
+});
+
+test('Reihenfolge verbrauchen: benutzten Eintrag und übersprungene davor streichen', () => {
+  assert.deepEqual(Logik.reihenfolgeVerbrauchen(['9z', '7b', '5a'], 1, '7b'), ['5a']);
+  assert.deepEqual(Logik.reihenfolgeVerbrauchen(['', '7b'], 0, ''), ['7b']);
+  // Während der Drehung umsortiert: nach Namen suchen
+  assert.deepEqual(Logik.reihenfolgeVerbrauchen(['5a', '7b', '8a'], 0, '7b'), ['8a']);
+  // Inzwischen gelöscht: nichts tun
+  assert.deepEqual(Logik.reihenfolgeVerbrauchen(['5a'], 0, '7b'), ['5a']);
+});

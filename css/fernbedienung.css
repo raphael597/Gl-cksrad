@@ -506,6 +506,231 @@ body.fb {
   opacity: 0.55;
 }
 
+/* Nächster Eintrag aus der Reihenfolge */
+.fb-chip.als-naechstes:not(.gewaehlt) {
+  border: 2px dashed var(--gold);
+}
+
+.fb-haken-reihe {
+  display: flex;
+  gap: 14px;
+}
+
+/* ---------- Reihenfolge ---------- */
+
+.fb-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: fb-reihe;
+}
+
+.fb-reihe li {
+  counter-increment: fb-reihe;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 12px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: var(--knopf);
+  font-weight: 700;
+}
+
+.fb-reihe li::before {
+  content: counter(fb-reihe) ".";
+  margin-right: 4px;
+  color: var(--gedimmt);
+  font-size: 0.85em;
+}
+
+.fb-reihe li.kopf {
+  border: 2px solid var(--gold);
+}
+
+.fb-reihe li.fehlt span {
+  color: var(--gedimmt);
+  text-decoration: line-through;
+}
+
+.fb-reihe li button {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: none;
+  color: var(--gedimmt);
+  font-size: 0.9rem;
+  touch-action: manipulation;
+}
+
+.fb-reihe li.leer {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gedimmt);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.fb-reihe li.leer::before {
+  content: none;
+}
+
+.fb-reihe-titel {
+  margin: 14px 0 8px;
+}
+
+.fb-reihe-namen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fb-mini-chip {
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: var(--knopf);
+  font-weight: 700;
+  touch-action: manipulation;
+}
+
+.fb-mini-chip:active {
+  background: var(--knopf-hover);
+}
+
+/* ---------- Blind-Modus ---------- */
+
+.fb-breit {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+.fb-blind-einstellen {
+  margin-bottom: 12px;
+}
+
+.fb-blind-einstellen summary {
+  padding: 6px 0;
+  color: var(--akzent-text);
+  font-weight: 700;
+}
+
+.fb-blind-wahl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.fb-blind-wahl label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--gedimmt);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.fb-blind-wahl select {
+  min-width: 0;
+  padding: 9px 8px;
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  background: var(--feld);
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Vollbild, fast schwarz: fällt nicht auf, spart Akku, Ecken lassen sich ertasten */
+.fb-blind {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: #050505;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.fb-blind-feld {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: #000;
+  color: #3a3f4a;
+  font-size: clamp(1.2rem, 7vw, 2rem);
+  font-weight: 800;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.fb-blind-feld.blitz {
+  animation: fb-blitz 0.45s ease-out;
+}
+
+@keyframes fb-blitz {
+  from { background: #1c1f27; color: #8a91a1; }
+  to { background: #000; color: #3a3f4a; }
+}
+
+.fb-blind-punkt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: #3b1d22;
+  pointer-events: none;
+}
+
+.fb-blind-punkt[data-status="bereit"] {
+  background: #0f5132;
+}
+
+.fb-blind-punkt[data-status="dreht"] {
+  background: #7a5a12;
+}
+
+.fb-blind-hilfe {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.8rem;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.8s;
+}
+
+.fb-blind-hilfe.weg {
+  opacity: 0;
+}
+
+/* Unsichtbarer Schalter für das Klacken auf dem iPhone (siehe vibrieren) */
+.fb-haptik {
+  position: fixed;
+  left: -100px;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ---------- Verlauf & Fuß ---------- */
 
 .fb-verlauf {
@@ -534,6 +759,10 @@ body.fb {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fb-blind-feld.blitz {
+    animation: none;
+  }
+
   .fb-chip,
   .fb-balken i {
     transition: none;

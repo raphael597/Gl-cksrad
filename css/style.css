@@ -2072,6 +2072,62 @@ code {
   color: var(--gedimmt);
 }
 
+/* Reihenfolge */
+.admin-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  counter-reset: reihe;
+}
+
+.admin-reihe li {
+  counter-increment: reihe;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 2px 10px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: var(--knopf);
+  font-weight: 600;
+}
+
+.admin-reihe li::before {
+  content: counter(reihe) ".";
+  color: var(--gedimmt);
+  font-size: 0.85em;
+}
+
+.admin-reihe li.kopf {
+  border-color: var(--gold);
+}
+
+.admin-reihe li.fehlt span {
+  color: var(--gedimmt);
+  text-decoration: line-through;
+}
+
+.admin-reihe li.leer {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--gedimmt);
+  font-weight: 400;
+}
+
+.admin-reihe li.leer::before {
+  content: none;
+}
+
+.admin-reihe .klein-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 0.8rem;
+}
+
 /* Handy als Fernbedienung */
 .live-an {
   display: grid;

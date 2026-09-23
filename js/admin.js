@@ -96,7 +96,8 @@
     const admin = Speicher.ladeAdmin();
     const eintraege = holeEintraege();
     const regeln = holeOptionen();
-    const { wahrscheinlichkeiten, modus } = Logik.analyse(eintraege, admin, regeln);
+    const analyse = Logik.analyse(eintraege, admin, regeln);
+    const { wahrscheinlichkeiten, modus } = analyse;
 
     // Chancen pro Name aufsummieren (falls ein Name mehrfach im Rad steht).
     const chance = {};
@@ -135,17 +136,21 @@
     }
     auswahl.value = optionen.find(([w]) => Logik.schluessel(w) === Logik.schluessel(admin.naechster || ''))[0];
     $('#admin-dauerhaft').checked = !!admin.naechsterDauerhaft;
+    reihenfolgeZeichnen(admin, namen, analyse);
 
     const ausgelassen = modus !== 'erzwungen' && regeln.ausschliessen ? regeln.ausschliessen[0] : '';
     $('#admin-modus').textContent =
-      modusText(modus, admin, eintraege) +
+      modusText(analyse, admin, eintraege) +
       (ausgelassen ? ` Außerdem ist „${ausgelassen}“ diesmal ausgeschlossen („nicht zweimal hintereinander“).` : '');
     $('#admin-modus').dataset.modus = modus;
   }
 
-  function modusText(modus, admin, eintraege) {
+  function modusText({ modus, quelle, reihenfolgePos }, admin, eintraege) {
     if (!admin.aktiv) return 'Aus – das Rad dreht fair, alle haben die gleiche Chance.';
     if (eintraege.length === 0) return 'Keine Einträge im Rad.';
+    if (modus === 'erzwungen' && quelle === 'reihenfolge') {
+      return `Der nächste Dreh landet auf „${admin.reihenfolge[reihenfolgePos]}“ (aus der Reihenfolge).`;
+    }
     if (modus === 'erzwungen') {
       return `Der ${admin.naechsterDauerhaft ? 'Dreh landet immer' : 'nächste Dreh landet'} auf „${admin.naechster}“.`;
     }
@@ -155,6 +160,47 @@
     return gesperrt > 0
       ? `Aktiv – ${gesperrt} ${gesperrt === 1 ? 'Eintrag kommt' : 'Einträge kommen'} nie dran.`
       : 'Aktiv – die Gewichtung wird angewendet.';
+  }
+
+  /** Liste „Reihenfolge“ und Auswahl zum Anhängen. */
+  function reihenfolgeZeichnen(admin, namen, analyse) {
+    const liste = $('#admin-reihenfolge');
+    const reihe = Array.isArray(admin.reihenfolge) ? admin.reihenfolge : [];
+    const imRad = new Set(namen.map(Logik.schluessel));
+    liste.textContent = '';
+    if (reihe.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'leer';
+      li.textContent = 'Leer – gezogen wird nach der Gewichtung.';
+      liste.appendChild(li);
+    }
+    reihe.forEach((name, pos) => {
+      const li = document.createElement('li');
+      li.dataset.pos = pos;
+      li.dataset.name = name;
+      const text = document.createElement('span');
+      text.textContent = name || '🎲 Zufall';
+      li.classList.toggle('fehlt', name !== '' && !imRad.has(Logik.schluessel(name)));
+      li.classList.toggle('kopf', analyse.quelle === 'reihenfolge' && analyse.reihenfolgePos === pos);
+      const weg = document.createElement('button');
+      weg.type = 'button';
+      weg.className = 'icon-btn klein-btn';
+      weg.textContent = '✕';
+      weg.setAttribute('aria-label', `${name || 'Zufall'} aus der Reihenfolge streichen`);
+      li.append(text, weg);
+      liste.appendChild(li);
+    });
+
+    const auswahl = $('#admin-reihe-name');
+    const vorher = auswahl.value;
+    auswahl.textContent = '';
+    for (const [wert, beschriftung] of [['', '🎲 Zufall']].concat(namen.map((n) => [n, n]))) {
+      const opt = document.createElement('option');
+      opt.value = wert;
+      opt.textContent = beschriftung;
+      auswahl.appendChild(opt);
+    }
+    if ([...auswahl.options].some((o) => o.value === vorher)) auswahl.value = vorher;
   }
 
   function simulieren() {
@@ -243,6 +289,14 @@
     const key = knopf.closest('tr').dataset.key;
     const jetzt = Logik.gewichtVon(key, Speicher.ladeAdmin());
     gewichtSetzen(key, jetzt === 0 ? 1 : 0);
+  });
+
+  const reiheAendern = (schritte) => aendern((a) => (a.reihenfolge = Logik.reihenfolgeAendern(a.reihenfolge, schritte)));
+  $('#admin-reihe-plus').addEventListener('click', () => reiheAendern([{ plus: $('#admin-reihe-name').value }]));
+  $('#admin-reihe-leeren').addEventListener('click', () => reiheAendern([{ leeren: true }]));
+  $('#admin-reihenfolge').addEventListener('click', (e) => {
+    const zeile = e.target.closest('button') && e.target.closest('li[data-pos]');
+    if (zeile) reiheAendern([{ minus: Number(zeile.dataset.pos), name: zeile.dataset.name }]);
   });
 
   $('#admin-simulieren').addEventListener('click', simulieren);
