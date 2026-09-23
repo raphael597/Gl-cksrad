@@ -23,11 +23,52 @@ python3 -m http.server 8000
 | Was | Wie |
 | --- | --- |
 | Einträge bearbeiten | Rechts im Textfeld, ein Eintrag pro Zeile |
+| Titel des Rads | Über dem Rad direkt hineinklicken und tippen |
 | Drehen | „Rad drehen“, auf die Mitte klicken oder **Leertaste** |
-| Gewinner entfernen | Im Ergebnis-Fenster „Aus dem Rad entfernen“ |
-| Vollbild (z. B. für den Beamer) | ⛶ oben rechts – zeigt dann nur das Rad |
+| Gewinner entfernen | Im Ergebnis-Fenster „Aus dem Rad entfernen“ (oder automatisch, siehe Einstellungen) |
+| Entfernte zurückholen | Knopf „↩ … zurückholen“ unter den Einträgen |
+| Vollbild (z. B. für den Beamer) | ⛶ oben rechts oder **F** – zeigt dann nur das Rad |
 
 Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStorage`).
+
+## Funktionen
+
+- **📂 Meine Räder**: mehrere Listen unter eigenem Namen speichern (z. B. eine pro Klasse),
+  mit einem Klick wechseln, löschen oder ein neues leeres Rad anlegen.
+- **👥 Teams**: verteilt alle Einträge zufällig auf eine Anzahl Teams oder auf Teams mit
+  fester Größe; Ergebnis als Text kopierbar.
+- **📊 Statistik**: wie oft wurde wer gezogen (mit Balken), Anzahl Drehungen,
+  Verlauf als CSV (für Excel) herunterladen.
+- **⚙️ Einstellungen**:
+  - Drehdauer kurz / normal / lang
+  - fünf Farbschemen fürs Rad (Bunt, Pastell, Neon, Ozean, Herbst)
+  - Darstellung Dunkel / Hell / wie das System
+  - Gewinner automatisch entfernen, Konfetti und Töne an/aus
+  - eigener Text über dem Ergebnis (z. B. „Dran ist:“)
+- **⋯ Menü bei den Einträgen**:
+  - Liste aus einer `.txt`- oder `.csv`-Datei laden (bei CSV zählt die erste Spalte)
+  - Liste als `.txt` speichern
+  - Link zum Teilen kopieren: die Liste steckt im Link, andere bekommen beim Öffnen dieselbe Liste
+  - Doppelte entfernen, alle löschen
+- **❔ Hilfe** mit Tastenkürzeln und **Datenschutz**-Hinweis (auch unten in der Fußzeile)
+
+### Tastenkürzel
+
+| Taste | Aktion |
+| --- | --- |
+| Leertaste / Enter | Rad drehen |
+| F | Vollbild an/aus |
+| S | Ton an/aus |
+| H oder ? | Hilfe |
+| Esc | Fenster schließen |
+
+> Die Kürzel benutzen absichtlich keinen Buchstaben aus „admin“, damit das Geheimwort nichts auslöst.
+
+### Online stellen (optional)
+
+Damit geteilte Links auch auf anderen Geräten funktionieren, muss die Seite im Netz liegen,
+z. B. kostenlos über **GitHub Pages** (Repository → Settings → Pages → Branch auswählen).
+Admin-Einstellungen werden dabei **nie** mitgeteilt – sie bleiben im jeweiligen Browser.
 
 ## Admin-Bereich
 
@@ -65,8 +106,8 @@ ohne dass auf dem Beamer etwas zu sehen ist.
 ### Warum es echt aussieht
 
 - Alle Felder sind **immer gleich groß**. Die Gewichte sieht man nirgends auf dem Rad.
-- Das Rad dreht jedes Mal **5–8 volle Umdrehungen**, 5–7,5 Sekunden lang, und rollt
-  mit einer natürlichen Bremskurve aus.
+- Das Rad dreht jedes Mal zufällig viele **volle Umdrehungen** (je nach Drehdauer 3–13)
+  über 3–11,5 Sekunden und rollt mit einer natürlichen Bremskurve aus.
 - Es bleibt an einer **zufälligen Stelle innerhalb** des Zielfeldes stehen (nie knapp am Rand).
 - Zeiger-Klackern, blinkende Lämpchen, Konfetti: alles wie bei einem normalen Rad.
 - Auf der Hauptseite gibt es keinen sichtbaren Hinweis auf den Admin-Bereich.
@@ -76,6 +117,11 @@ ohne dass auf dem Beamer etwas zu sehen ist.
 - Stehen **alle** Einträge auf 0, zieht das Rad fair (irgendwo muss es ja stehen bleiben).
   Der Admin-Bereich warnt dann.
 - Ein festgelegter Gewinner, der gar nicht im Rad steht, wird ignoriert.
+- Die Regeln gelten für alle Räder: Ist „7b“ gesperrt, ist sie es auch in jedem gespeicherten Rad.
+- Drehdauer, automatisches Entfernen und Teams funktionieren ganz normal weiter. Die Teams
+  werden immer fair (zufällig) gebildet, die Admin-Gewichte gelten nur fürs Rad.
+- Die **Statistik** zählt ehrlich den Verlauf. Ein gesperrter Eintrag steht dort nach vielen
+  Drehungen also mit „0×“. Wenn dich das stört: Verlauf leeren.
 
 > **Hinweis:** Die PIN ist nur ein Sichtschutz. Alles läuft im Browser, und wer sich mit den
 > Entwicklertools auskennt, kann die Einstellungen im `localStorage` lesen.
@@ -96,15 +142,19 @@ Das angezeigte Ergebnis wird danach aus der tatsächlichen Radstellung abgelesen
 ## Projektstruktur
 
 ```
-index.html        Seite mit Rad, Einträgen, Ergebnis- und Admin-Dialog
-css/style.css     Aussehen
-js/logik.js       Reine Rechenlogik (Gewichtung, Auswahl, Winkel), ohne DOM, getestet
-js/speicher.js    Laden/Speichern im localStorage
-js/rad.js         Zeichnen und Animieren des Rads (Canvas)
-js/effekte.js     Ton (Web Audio) und Konfetti
-js/admin.js       Admin-Bereich
-js/app.js         Verbindet alles auf der Hauptseite
-tests/            Tests für js/logik.js
+index.html           Seite mit Rad, Einträgen und allen Dialogen
+css/style.css        Aussehen (Dunkel/Hell über CSS-Variablen)
+js/logik.js          Reine Rechenlogik (Gewichtung, Auswahl, Winkel), ohne DOM, getestet
+js/speicher.js       Laden/Speichern im localStorage
+js/rad.js            Zeichnen und Animieren des Rads (Canvas), Farbschemen
+js/effekte.js        Ton (Web Audio) und Konfetti
+js/admin.js          Admin-Bereich
+js/app.js            Kern der Hauptseite: Drehen, Ergebnis, Verlauf, Dialoge, Tastatur
+js/einstellungen.js  Dialog „Einstellungen“
+js/listen.js         Meine Räder, Datei laden/speichern, Teilen-Link
+js/teams.js          Teams bilden
+js/statistik.js      Statistik und CSV-Export
+tests/               Tests für js/logik.js
 ```
 
 ## Tests

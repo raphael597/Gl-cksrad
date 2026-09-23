@@ -1,19 +1,58 @@
-/* ===== Grundlagen ===== */
+/* ===== Farben (Dunkel = Standard, Hell über data-design="hell") ===== */
 
 :root {
   --bg: #0b1020;
   --bg-spot: #1d2645;
+  --bg-spot2: #2a1638;
   --karte: rgba(21, 27, 46, 0.82);
   --rand: #29324f;
+  --linie: rgba(255, 255, 255, 0.07);
   --text: #e8ecf6;
   --gedimmt: #94a3b8;
+  --feld: #0e1428;
+  --knopf: #1b2340;
+  --knopf-hover: #263057;
+  --dialog: #121831;
+  --badge: #2b3556;
+  --schalter-aus: #334066;
   --gold: #fbbf24;
   --gold-dunkel: #d97706;
+  --gold-text: #3b1d06;
+  --akzent-text: #fbbf24;
   --rot: #f43f5e;
-  --gruen: #34d399;
+  --rot-text: #fda4af;
+  --titel-verlauf: linear-gradient(180deg, #fde68a, #fbbf24 55%, #d97706);
+  --schatten: 0 30px 80px rgba(0, 0, 0, 0.6);
+  --abdunkeln: rgba(5, 8, 18, 0.7);
   --radius: 14px;
   --schrift: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
 }
+
+:root[data-design="hell"] {
+  --bg: #f4f1ea;
+  --bg-spot: #fff8e6;
+  --bg-spot2: #ede7fb;
+  --karte: rgba(255, 255, 255, 0.92);
+  --rand: #e2ded4;
+  --linie: rgba(0, 0, 0, 0.07);
+  --text: #1f2330;
+  --gedimmt: #64748b;
+  --feld: #ffffff;
+  --knopf: #f3f1ec;
+  --knopf-hover: #e9e5dc;
+  --dialog: #ffffff;
+  --badge: #fef3c7;
+  --schalter-aus: #cbd5e1;
+  --akzent-text: #b45309;
+  --rot-text: #be123c;
+  --titel-verlauf: linear-gradient(180deg, #f59e0b, #d97706 55%, #b45309);
+  --schatten: 0 20px 50px rgba(15, 23, 42, 0.18);
+  --abdunkeln: rgba(15, 23, 42, 0.45);
+  color-scheme: light;
+}
+
+/* ===== Grundlagen ===== */
 
 * {
   box-sizing: border-box;
@@ -30,7 +69,7 @@ body {
   color: var(--text);
   background:
     radial-gradient(ellipse at 35% 30%, var(--bg-spot) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 90%, #2a1638 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, var(--bg-spot2) 0%, transparent 50%),
     var(--bg);
   background-attachment: fixed;
   min-height: 100vh;
@@ -46,7 +85,8 @@ textarea {
   color: inherit;
 }
 
-button {
+button,
+summary {
   cursor: pointer;
 }
 
@@ -60,12 +100,18 @@ button:disabled {
   outline-offset: 2px;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 /* ===== Kopfzeile ===== */
 
 .kopf {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   padding: 18px 28px 0;
 }
 
@@ -74,7 +120,7 @@ button:disabled {
   font-size: clamp(1.6rem, 3vw, 2.3rem);
   font-weight: 900;
   letter-spacing: 0.02em;
-  background: linear-gradient(180deg, #fde68a, var(--gold) 55%, var(--gold-dunkel));
+  background: var(--titel-verlauf);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -84,23 +130,47 @@ button:disabled {
 
 .kopf-aktionen {
   display: flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .icon-btn {
   width: 42px;
   height: 42px;
+  flex: 0 0 auto;
   border-radius: 50%;
   border: 1px solid var(--rand);
   background: var(--karte);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
   display: grid;
   place-items: center;
+  padding: 0;
   transition: background 0.15s, transform 0.15s;
 }
 
 .icon-btn:hover {
-  background: #232c4a;
+  background: var(--knopf-hover);
+  transform: translateY(-1px);
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--rand);
+  background: var(--karte);
+  font-weight: 600;
+  font-size: 0.93rem;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.nav-btn:hover {
+  background: var(--knopf-hover);
   transform: translateY(-1px);
 }
 
@@ -120,16 +190,40 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  padding-top: 8px;
+}
+
+.rad-titel {
+  width: min(100%, 560px);
+  border: none;
+  border-bottom: 2px dashed transparent;
+  background: transparent;
+  text-align: center;
+  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+  font-weight: 800;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  border-radius: 0;
+  transition: border-color 0.15s;
+}
+
+.rad-titel:hover,
+.rad-titel:focus {
+  border-bottom-color: var(--rand);
+  outline: none;
+}
+
+.rad-titel::placeholder {
+  color: var(--gedimmt);
+  opacity: 0.6;
 }
 
 /* ===== Rad ===== */
 
 .rad-rahmen {
   position: relative;
-  width: min(100%, 76vh, 680px);
+  width: min(100%, 72vh, 660px);
   aspect-ratio: 1;
-  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.45));
 }
 
 #rad {
@@ -170,7 +264,7 @@ button:disabled {
   border-radius: 50%;
   border: 5px solid #fff7d6;
   background: radial-gradient(circle at 35% 30%, #fde68a, var(--gold) 45%, var(--gold-dunkel));
-  color: #3b1d06;
+  color: var(--gold-text);
   font-weight: 900;
   font-size: clamp(0.8rem, 2.2vmin, 1.35rem);
   letter-spacing: 0.04em;
@@ -194,7 +288,7 @@ button:disabled {
   padding: 14px 44px;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #3b1d06;
+  color: var(--gold-text);
   background: linear-gradient(180deg, #fde68a, var(--gold) 50%, var(--gold-dunkel));
   box-shadow: 0 8px 22px rgba(251, 191, 36, 0.28);
   transition: transform 0.15s, box-shadow 0.15s;
@@ -232,6 +326,7 @@ body.dreht .hinweis {
 }
 
 .karte-kopf {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -248,8 +343,8 @@ body.dreht .hinweis {
 
 .badge {
   font-size: 0.75rem;
-  background: #2b3556;
-  color: var(--gold);
+  background: var(--badge);
+  color: var(--akzent-text);
   border-radius: 999px;
   padding: 2px 9px;
 }
@@ -258,7 +353,7 @@ textarea {
   width: 100%;
   min-height: 230px;
   resize: vertical;
-  background: #0e1428;
+  background: var(--feld);
   border: 1px solid var(--rand);
   border-radius: 10px;
   padding: 10px 12px;
@@ -279,7 +374,7 @@ textarea:disabled {
 .btn {
   flex: 1;
   border: 1px solid var(--rand);
-  background: #1b2340;
+  background: var(--knopf);
   border-radius: 10px;
   padding: 9px 14px;
   font-weight: 600;
@@ -288,13 +383,18 @@ textarea:disabled {
 }
 
 .btn:hover:not(:disabled) {
-  background: #263057;
+  background: var(--knopf-hover);
+}
+
+.btn-breit {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .btn-gold {
   border-color: transparent;
   background: var(--gold);
-  color: #3b1d06;
+  color: var(--gold-text);
 }
 
 .btn-gold:hover:not(:disabled) {
@@ -303,11 +403,11 @@ textarea:disabled {
 
 .btn-gefahr {
   border-color: rgba(244, 63, 94, 0.5);
-  color: #fda4af;
+  color: var(--rot-text);
 }
 
 .btn-gefahr:hover:not(:disabled) {
-  background: rgba(244, 63, 94, 0.15);
+  background: rgba(244, 63, 94, 0.12);
 }
 
 .link-btn {
@@ -317,6 +417,10 @@ textarea:disabled {
   font-size: 0.85rem;
   text-decoration: underline;
   padding: 0;
+}
+
+.link-btn:hover {
+  color: var(--text);
 }
 
 .verlauf {
@@ -332,11 +436,11 @@ textarea:disabled {
   justify-content: space-between;
   gap: 10px;
   padding: 7px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--linie);
 }
 
 .verlauf li:first-child span {
-  color: var(--gold);
+  color: var(--akzent-text);
   font-weight: 700;
 }
 
@@ -346,9 +450,83 @@ textarea:disabled {
   font-size: 0.85rem;
 }
 
-/* Im Vollbild nur das Rad zeigen */
+/* Menü "⋯" bei den Einträgen */
+.menue summary {
+  list-style: none;
+}
+
+.menue summary::-webkit-details-marker {
+  display: none;
+}
+
+.klein-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+}
+
+.menue-liste {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  min-width: 270px;
+  padding: 6px;
+  background: var(--dialog);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  box-shadow: var(--schatten);
+  display: flex;
+  flex-direction: column;
+}
+
+.menue-liste button {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 0.93rem;
+}
+
+.menue-liste button:hover {
+  background: var(--knopf-hover);
+}
+
+.menue-liste hr {
+  border: none;
+  border-top: 1px solid var(--rand);
+  margin: 4px 6px;
+}
+
+.gefahr-text {
+  color: var(--rot-text);
+}
+
+/* ===== Fußzeile ===== */
+
+.fuss {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 10px 16px 22px;
+  font-size: 0.82rem;
+  color: var(--gedimmt);
+}
+
+.fuss .link-btn {
+  font-size: inherit;
+}
+
+/* ===== Vollbild: nur das Rad ===== */
+
 :root:fullscreen .seitenleiste,
-:root:fullscreen .hinweis {
+:root:fullscreen .hinweis,
+:root:fullscreen .fuss,
+:root:fullscreen .nav-btn,
+:root:fullscreen [data-oeffnen="hilfe"] {
   display: none;
 }
 
@@ -357,25 +535,95 @@ textarea:disabled {
 }
 
 :root:fullscreen .rad-rahmen {
-  width: min(100%, 80vh);
+  width: min(100%, 76vh);
 }
 
-/* ===== Dialoge ===== */
+/* ===== Dialoge allgemein ===== */
 
 dialog {
   border: 1px solid var(--rand);
   border-radius: 20px;
-  background: #121831;
+  background: var(--dialog);
   color: var(--text);
   padding: 0;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--schatten);
 }
 
 dialog::backdrop {
-  background: rgba(5, 8, 18, 0.7);
+  background: var(--abdunkeln);
   backdrop-filter: blur(3px);
 }
 
+.fenster {
+  width: min(94vw, 640px);
+  max-height: 88vh;
+}
+
+.fenster[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.fenster-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--rand);
+}
+
+.fenster-kopf h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.fenster-inhalt {
+  padding: 18px 20px 20px;
+  overflow-y: auto;
+}
+
+.fenster input[type="text"],
+.fenster input[type="number"],
+.fenster select,
+.admin input[type="password"],
+.admin select {
+  width: 100%;
+  background: var(--feld);
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.zeile-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.zeile-form > input,
+.zeile-form > select {
+  flex: 1 1 140px;
+  width: auto;
+}
+
+.zeile-form > .btn {
+  flex: 0 0 auto;
+}
+
+.klein {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--gedimmt);
+}
+
+.leer {
+  color: var(--gedimmt);
+  text-align: center;
+  padding: 16px;
+}
+
+/* Ergebnis */
 .ergebnis {
   width: min(92vw, 520px);
   padding: 30px 28px 24px;
@@ -400,8 +648,14 @@ dialog::backdrop {
   font-weight: 900;
   line-height: 1.1;
   word-break: break-word;
-  color: var(--gold);
+  color: var(--akzent-text);
   text-shadow: 0 0 28px rgba(251, 191, 36, 0.35);
+}
+
+.ergebnis-hinweis {
+  margin: -8px 0 14px;
+  font-size: 0.85rem;
+  color: var(--gedimmt);
 }
 
 @keyframes aufploppen {
@@ -422,6 +676,354 @@ dialog::backdrop {
   height: 100vh;
   pointer-events: none;
   z-index: 1;
+}
+
+/* Meine Räder */
+.raeder-liste {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.raeder-liste li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--linie);
+}
+
+.raeder-liste li.leer {
+  display: block;
+  border: none;
+}
+
+.rad-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rad-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rad-info .klein {
+  margin: 0;
+}
+
+.raeder-liste .btn {
+  flex: 0 0 auto;
+}
+
+/* Teams */
+.teams-raster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.team-karte {
+  background: var(--knopf);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.team-karte h4 {
+  margin: 0 0 6px;
+  color: var(--akzent-text);
+}
+
+.team-karte ul {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+/* Statistik */
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.kennzahl {
+  background: var(--knopf);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kennzahl strong {
+  font-size: 1.4rem;
+}
+
+.kennzahl span {
+  font-size: 0.8rem;
+  color: var(--gedimmt);
+}
+
+.tabelle,
+.admin-tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.tabelle th,
+.admin-tabelle th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--gedimmt);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 8px;
+}
+
+.tabelle td,
+.admin-tabelle td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--linie);
+}
+
+.tabelle .zahl,
+.admin-tabelle .zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabelle .name,
+.admin-tabelle .name {
+  font-weight: 600;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balken-spalte {
+  width: 45%;
+}
+
+.balken {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--linie);
+  overflow: hidden;
+}
+
+.balken i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold-dunkel), var(--gold));
+}
+
+/* Einstellungen */
+.einstellungen fieldset {
+  border: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.einstellungen legend {
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.segmente {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--feld);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+}
+
+.segmente label {
+  flex: 1;
+}
+
+.segmente input,
+.farbschema input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmente span {
+  display: block;
+  text-align: center;
+  padding: 8px 6px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.segmente span:hover {
+  background: var(--knopf-hover);
+}
+
+.segmente input:checked + span {
+  background: var(--gold);
+  color: var(--gold-text);
+}
+
+.segmente input:focus-visible + span,
+.farbschema input:focus-visible ~ .vorschau {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.farbschemen {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.farbschema {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 2px solid var(--rand);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.farbschema:has(input:checked) {
+  border-color: var(--gold);
+}
+
+.farbschema input:checked ~ .name {
+  color: var(--akzent-text);
+}
+
+.vorschau {
+  display: flex;
+  height: 18px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vorschau i {
+  flex: 1;
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 0.92rem;
+}
+
+.haken {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+
+.haken input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--gold-dunkel);
+}
+
+/* Hilfe */
+.text {
+  line-height: 1.55;
+}
+
+.text h3 {
+  margin: 20px 0 6px;
+  font-size: 1rem;
+}
+
+.text h3:first-child {
+  margin-top: 0;
+}
+
+.text p,
+.text ol,
+.text ul {
+  margin: 0 0 8px;
+}
+
+.text li {
+  margin-bottom: 4px;
+}
+
+.kuerzel td {
+  padding: 3px 14px 3px 0;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 24px;
+  padding: 1px 7px;
+  border: 1px solid var(--rand);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--knopf);
+  font-family: inherit;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+code {
+  font-size: 0.88em;
+  background: var(--knopf);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* Meldung ("Toast") – als Popover, damit sie auch über offenen Dialogen erscheint */
+.meldung {
+  position: fixed;
+  inset: auto 0 28px 0;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 18px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: var(--dialog);
+  color: var(--text);
+  box-shadow: var(--schatten);
+  font-weight: 600;
+  font-size: 0.93rem;
+  overflow: visible;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.meldung.sichtbar {
+  opacity: 1;
+  transform: none;
 }
 
 /* ===== Admin ===== */
@@ -450,18 +1052,9 @@ dialog::backdrop {
   font-size: 0.9rem;
 }
 
-.admin input[type="password"],
-.admin select {
-  width: 100%;
-  background: #0e1428;
-  border: 1px solid var(--rand);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
 .fehler {
   margin: 0;
-  color: #fda4af;
+  color: var(--rot-text);
   font-size: 0.9rem;
 }
 
@@ -487,7 +1080,7 @@ dialog::backdrop {
   align-items: center;
   justify-content: space-between;
   padding: 18px 0 12px;
-  background: #121831;
+  background: var(--dialog);
   border-bottom: 1px solid var(--rand);
 }
 
@@ -510,9 +1103,7 @@ dialog::backdrop {
   font-size: 1rem;
 }
 
-.klein {
-  margin: 0 0 10px;
-  font-size: 0.85rem;
+.admin .haken {
   color: var(--gedimmt);
 }
 
@@ -536,15 +1127,6 @@ dialog::backdrop {
   border-color: rgba(244, 63, 94, 0.4);
 }
 
-.haken {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  font-size: 0.92rem;
-  color: var(--gedimmt);
-}
-
 /* Kippschalter */
 .schalter {
   display: inline-flex;
@@ -565,7 +1147,7 @@ dialog::backdrop {
   width: 48px;
   height: 26px;
   border-radius: 999px;
-  background: #334066;
+  background: var(--schalter-aus);
   transition: background 0.2s;
 }
 
@@ -597,41 +1179,6 @@ dialog::backdrop {
 /* Gewichtstabelle */
 .tabelle-huelle {
   overflow-x: auto;
-}
-
-.admin-tabelle {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.93rem;
-}
-
-.admin-tabelle th {
-  text-align: left;
-  font-weight: 600;
-  color: var(--gedimmt);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 6px 8px;
-}
-
-.admin-tabelle td {
-  padding: 6px 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.admin-tabelle .zahl {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.admin-tabelle .name {
-  font-weight: 600;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .admin-tabelle .gewicht {
@@ -667,25 +1214,18 @@ dialog::backdrop {
   border-color: rgba(244, 63, 94, 0.6);
 }
 
-.admin-tabelle tr.gesperrt .name,
-.admin-tabelle tr.gesperrt output {
-  color: #fda4af;
+.admin-tabelle tr.gesperrt .name {
+  color: var(--rot-text);
   text-decoration: line-through;
 }
 
 .admin-tabelle tr.gesperrt output {
-  text-decoration: none;
+  color: var(--rot-text);
 }
 
 .admin-tabelle tr.erzwungen .name::after {
   content: " ★";
   color: var(--gold);
-}
-
-.admin-tabelle .leer {
-  color: var(--gedimmt);
-  text-align: center;
-  padding: 16px;
 }
 
 .admin-panel.inaktiv .admin-tabelle .chance {
@@ -710,6 +1250,18 @@ dialog::backdrop {
 
 /* ===== Schmale Bildschirme ===== */
 
+@media (max-width: 1150px) {
+  .nav-btn span {
+    display: none;
+  }
+
+  .nav-btn {
+    width: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
@@ -726,5 +1278,22 @@ dialog::backdrop {
 
   .admin-panel {
     padding: 0 16px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kopf {
+    justify-content: center;
+  }
+
+  .kopf-aktionen {
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .icon-btn,
+  .nav-btn {
+    width: 38px;
+    height: 38px;
   }
 }

@@ -9,7 +9,14 @@
 
   const { VOLLKREIS, indexUnterZeiger, ausrollen, mod } = global.Logik;
 
-  const FARBEN = ['#e63946', '#f4a261', '#e9c46a', '#2a9d8f', '#3a86ff', '#8338ec', '#ff5d8f', '#06d6a0'];
+  // Je 8 Farben; benachbarte Farben sollen sich gut unterscheiden.
+  const FARBSCHEMEN = {
+    bunt: { name: 'Bunt', farben: ['#e63946', '#f4a261', '#e9c46a', '#2a9d8f', '#3a86ff', '#8338ec', '#ff5d8f', '#06d6a0'] },
+    pastell: { name: 'Pastell', farben: ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'] },
+    neon: { name: 'Neon', farben: ['#ff006e', '#fb5607', '#ffbe0b', '#38b000', '#00bbf9', '#3a0ca3', '#f15bb5', '#00f5d4'] },
+    ozean: { name: 'Ozean', farben: ['#03045e', '#0077b6', '#00b4d8', '#48cae4', '#023e8a', '#0096c7', '#90e0ef', '#2a6f97'] },
+    herbst: { name: 'Herbst', farben: ['#9b2226', '#ca6702', '#ee9b00', '#94d2bd', '#005f73', '#bb3e03', '#e9d8a6', '#0a9396'] },
+  };
   const LAEMPCHEN = 24;
 
   // Anteile vom halben Canvas: Außenrand, Lämpchenkreis, Felder
@@ -17,11 +24,11 @@
   const R_LICHT = 0.952;
   const R_FELDER = 0.92;
 
-  function feldFarbe(i, anzahl) {
-    let f = i % FARBEN.length;
+  function feldFarbe(farben, i, anzahl) {
+    let f = i % farben.length;
     // Letztes und erstes Feld liegen nebeneinander – nicht dieselbe Farbe.
     if (anzahl > 1 && i === anzahl - 1 && f === 0) f = 3;
-    return FARBEN[f];
+    return farben[f];
   }
 
   function textFarbe(hex) {
@@ -45,6 +52,7 @@
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.eintraege = [];
+      this.farben = FARBSCHEMEN.bunt.farben;
       this.rotation = 0;
       this.dreht = false;
       this.onTick = optionen.onTick || function () {};
@@ -66,6 +74,12 @@
         this.canvas.height = pixel;
         this.felderBild = null;
       }
+      this.zeichnen();
+    }
+
+    setFarbschema(name) {
+      this.farben = (FARBSCHEMEN[name] || FARBSCHEMEN.bunt).farben;
+      this.felderBild = null;
       this.zeichnen();
     }
 
@@ -107,7 +121,7 @@
         c.moveTo(m, m);
         c.arc(m, m, radius, start, start + feld);
         c.closePath();
-        c.fillStyle = feldFarbe(i, n);
+        c.fillStyle = feldFarbe(this.farben, i, n);
         c.fill();
         if (n > 1) {
           c.strokeStyle = 'rgba(255,255,255,0.45)';
@@ -122,16 +136,22 @@
       const hoeheImFeld = 2 * radius * 0.6 * Math.sin(Math.min(feld, Math.PI) / 2);
       const schrift = Math.max(10, Math.min(radius * 0.11, hoeheImFeld * 0.62));
 
+      const schriftart = (px) => `700 ${Math.round(px)}px system-ui, "Segoe UI", Roboto, sans-serif`;
       c.textAlign = 'right';
       c.textBaseline = 'middle';
-      c.font = `700 ${Math.round(schrift)}px system-ui, "Segoe UI", Roboto, sans-serif`;
       for (let i = 0; i < n; i++) {
+        // Lange Namen: erst die Schrift verkleinern (bis 55 %), erst dann kürzen.
+        c.font = schriftart(schrift);
+        const breite = c.measureText(this.eintraege[i]).width;
+        const groesse = breite > maxBreite ? Math.max(schrift * 0.55, (schrift * maxBreite) / breite) : schrift;
+        c.font = schriftart(groesse);
+
         c.save();
         c.translate(m, m);
         c.rotate(versatz + (i + 0.5) * feld);
-        c.fillStyle = textFarbe(feldFarbe(i, n));
+        c.fillStyle = textFarbe(feldFarbe(this.farben, i, n));
         c.shadowColor = 'rgba(0,0,0,0.25)';
-        c.shadowBlur = schrift * 0.15;
+        c.shadowBlur = groesse * 0.15;
         c.fillText(kuerzen(c, this.eintraege[i], maxBreite), textRadius, 0);
         c.restore();
       }
@@ -224,5 +244,6 @@
     }
   }
 
+  Rad.FARBSCHEMEN = FARBSCHEMEN;
   global.Rad = Rad;
 })(window);

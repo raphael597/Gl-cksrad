@@ -2,7 +2,7 @@
  * speicher.js – Laden und Speichern im localStorage des Browsers.
  *
  * Zwei getrennte Bereiche:
- *   - Raddaten (Einträge, Verlauf, Ton) – das, was alle sehen
+ *   - Raddaten (Einträge, Verlauf, gespeicherte Räder, Einstellungen) – das, was alle sehen
  *   - Admin-Einstellungen (Gewichte, festgelegter Gewinner, PIN)
  */
 (function (global) {
@@ -11,10 +11,23 @@
   const SCHLUESSEL_RAD = 'gluecksrad.daten';
   const SCHLUESSEL_ADMIN = 'gluecksrad.admin';
 
+  const STANDARD_EINSTELLUNGEN = {
+    dauer: 'normal', // 'kurz' | 'normal' | 'lang'
+    farben: 'bunt', // Schlüssel aus Rad.FARBSCHEMEN
+    design: 'dunkel', // 'dunkel' | 'hell' | 'system'
+    autoEntfernen: false,
+    konfetti: true,
+    ergebnisText: 'Das Rad hat entschieden:',
+  };
+
   const STANDARD_RAD = {
+    titel: 'Klassen',
     eintraege: ['5a', '5b', '6a', '6b', '7a', '7b', '8a', '8b'],
-    verlauf: [],
+    entfernt: [], // gezogene und entfernte Einträge – zum Zurückholen
+    verlauf: [], // [{ name, zeit }] – neueste zuerst
+    gespeichert: [], // [{ name, eintraege, zeit }] – "Meine Räder"
     ton: true,
+    einstellungen: STANDARD_EINSTELLUNGEN,
   };
 
   const STANDARD_ADMIN = {
@@ -46,10 +59,18 @@
     }
   }
 
+  function ladeRad() {
+    const daten = lesen(SCHLUESSEL_RAD, STANDARD_RAD);
+    // Neue Einstellungen ergänzen, falls ältere Daten gespeichert sind.
+    daten.einstellungen = Object.assign(kopie(STANDARD_EINSTELLUNGEN), daten.einstellungen);
+    return daten;
+  }
+
   global.Speicher = {
     SCHLUESSEL_RAD,
     SCHLUESSEL_ADMIN,
-    ladeRad: () => lesen(SCHLUESSEL_RAD, STANDARD_RAD),
+    STANDARD_EINSTELLUNGEN,
+    ladeRad,
     speichereRad: (daten) => schreiben(SCHLUESSEL_RAD, daten),
     ladeAdmin: () => lesen(SCHLUESSEL_ADMIN, STANDARD_ADMIN),
     speichereAdmin: (admin) => schreiben(SCHLUESSEL_ADMIN, admin),

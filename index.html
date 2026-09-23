@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-design="dunkel">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kostenloses Glücksrad für Unterricht, Spiele und Entscheidungen – Einträge eingeben, drehen, fertig.">
   <title>Glücksrad</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎡</text></svg>">
   <link rel="stylesheet" href="css/style.css">
@@ -10,14 +11,20 @@
 <body>
   <header class="kopf">
     <h1 id="titel">Glücksrad</h1>
-    <div class="kopf-aktionen">
-      <button id="btn-ton" class="icon-btn" type="button" title="Ton an/aus" aria-label="Ton an/aus">🔊</button>
-      <button id="btn-vollbild" class="icon-btn" type="button" title="Vollbild" aria-label="Vollbild">⛶</button>
-    </div>
+    <nav class="kopf-aktionen" aria-label="Funktionen">
+      <button class="nav-btn" type="button" data-oeffnen="raeder" title="Meine Räder">📂<span>Meine Räder</span></button>
+      <button class="nav-btn" type="button" data-oeffnen="teams" title="Teams bilden">👥<span>Teams</span></button>
+      <button class="nav-btn" type="button" data-oeffnen="statistik" title="Statistik">📊<span>Statistik</span></button>
+      <button class="nav-btn" type="button" data-oeffnen="einstellungen" title="Einstellungen">⚙️<span>Einstellungen</span></button>
+      <button class="icon-btn" type="button" data-oeffnen="hilfe" title="Hilfe (H)" aria-label="Hilfe">?</button>
+      <button id="btn-ton" class="icon-btn" type="button" title="Ton an/aus (S)" aria-label="Ton an/aus">🔊</button>
+      <button id="btn-vollbild" class="icon-btn" type="button" title="Vollbild (F)" aria-label="Vollbild">⛶</button>
+    </nav>
   </header>
 
   <main class="layout">
     <section class="buehne" aria-label="Glücksrad">
+      <input id="rad-titel" class="rad-titel" type="text" maxlength="60" placeholder="Titel des Rads" aria-label="Titel des Rads" spellcheck="false">
       <div class="rad-rahmen">
         <svg class="zeiger" id="zeiger" viewBox="0 0 60 80" aria-hidden="true">
           <path d="M30 78 L10 34 A22 22 0 1 1 50 34 Z" />
@@ -34,12 +41,25 @@
       <div class="karte">
         <div class="karte-kopf">
           <h2>Einträge <span id="anzahl" class="badge">0</span></h2>
+          <details class="menue" id="eintraege-menue">
+            <summary class="icon-btn klein-btn" title="Weitere Aktionen" aria-label="Weitere Aktionen">⋯</summary>
+            <div class="menue-liste" role="menu">
+              <button type="button" role="menuitem" id="btn-datei-laden">📥 Aus Datei laden (.txt / .csv)</button>
+              <button type="button" role="menuitem" id="btn-datei-speichern">💾 Als Datei speichern</button>
+              <button type="button" role="menuitem" id="btn-teilen">🔗 Link zum Teilen kopieren</button>
+              <hr>
+              <button type="button" role="menuitem" id="btn-doppelte">🧹 Doppelte entfernen</button>
+              <button type="button" role="menuitem" id="btn-alle-loeschen" class="gefahr-text">🗑 Alle löschen</button>
+            </div>
+          </details>
+          <input id="datei-eingabe" type="file" accept=".txt,.csv,text/plain,text/csv" hidden>
         </div>
         <textarea id="eintraege" spellcheck="false" placeholder="Ein Eintrag pro Zeile, z. B.&#10;5a&#10;5b&#10;6a"></textarea>
         <div class="knopfreihe">
           <button id="btn-mischen" class="btn" type="button">🔀 Mischen</button>
           <button id="btn-sortieren" class="btn" type="button">↕ Sortieren</button>
         </div>
+        <button id="btn-zurueckholen" class="btn btn-breit" type="button" hidden></button>
       </div>
 
       <div class="karte">
@@ -52,13 +72,24 @@
     </aside>
   </main>
 
+  <footer class="fuss">
+    <span>🎡 Glücksrad</span>
+    <span class="fuss-punkt">·</span>
+    <span>Alle Daten bleiben in deinem Browser</span>
+    <span class="fuss-punkt">·</span>
+    <button class="link-btn" type="button" data-oeffnen="hilfe">Hilfe</button>
+    <span class="fuss-punkt">·</span>
+    <button class="link-btn" type="button" data-oeffnen="hilfe" data-abschnitt="datenschutz">Datenschutz</button>
+  </footer>
+
   <!-- Ergebnis -->
   <dialog id="ergebnis" class="ergebnis">
     <!-- Konfetti liegt im Dialog, damit es über dem abgedunkelten Hintergrund fliegt -->
     <canvas id="konfetti" class="konfetti" aria-hidden="true"></canvas>
     <div class="ergebnis-inhalt">
-      <p class="ergebnis-label">Das Rad hat entschieden:</p>
+      <p class="ergebnis-label" id="ergebnis-label">Das Rad hat entschieden:</p>
       <p class="ergebnis-name" id="ergebnis-name"></p>
+      <p class="ergebnis-hinweis" id="ergebnis-hinweis" hidden>wird aus dem Rad entfernt</p>
       <div class="knopfreihe">
         <button id="btn-entfernen" class="btn" type="button">Aus dem Rad entfernen</button>
         <button id="btn-weiter" class="btn btn-gold" type="button" autofocus>Weiter</button>
@@ -66,10 +97,163 @@
     </div>
   </dialog>
 
+  <!-- Meine Räder -->
+  <dialog id="raeder" class="fenster">
+    <header class="fenster-kopf">
+      <h2>📂 Meine Räder</h2>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schließen">✕</button>
+    </header>
+    <div class="fenster-inhalt">
+      <form id="rad-speichern-form" class="zeile-form" autocomplete="off">
+        <input id="rad-speichern-name" type="text" maxlength="60" placeholder="Name für das aktuelle Rad" required>
+        <button class="btn btn-gold" type="submit">💾 Speichern</button>
+      </form>
+      <ul id="raeder-liste" class="raeder-liste"></ul>
+      <div class="knopfreihe">
+        <button id="btn-neues-rad" class="btn" type="button">＋ Neues leeres Rad</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Teams -->
+  <dialog id="teams" class="fenster">
+    <header class="fenster-kopf">
+      <h2>👥 Teams bilden</h2>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schließen">✕</button>
+    </header>
+    <div class="fenster-inhalt">
+      <p class="klein">Verteilt die aktuellen Einträge zufällig auf Gruppen.</p>
+      <form id="teams-form" class="zeile-form" autocomplete="off">
+        <select id="teams-modus" aria-label="Aufteilen nach">
+          <option value="anzahl">Anzahl Teams</option>
+          <option value="groesse">Personen pro Team</option>
+        </select>
+        <input id="teams-zahl" type="number" min="1" max="50" value="2" aria-label="Zahl">
+        <button class="btn btn-gold" type="submit">🎲 Teams bilden</button>
+      </form>
+      <div id="teams-ergebnis" class="teams-raster"></div>
+      <div class="knopfreihe" id="teams-aktionen" hidden>
+        <button id="btn-teams-kopieren" class="btn" type="button">📋 Als Text kopieren</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Statistik -->
+  <dialog id="statistik" class="fenster">
+    <header class="fenster-kopf">
+      <h2>📊 Statistik</h2>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schließen">✕</button>
+    </header>
+    <div class="fenster-inhalt">
+      <div class="kennzahlen" id="statistik-kennzahlen"></div>
+      <table class="tabelle">
+        <thead><tr><th>Eintrag</th><th class="balken-spalte"></th><th class="zahl">Gezogen</th></tr></thead>
+        <tbody id="statistik-tabelle"></tbody>
+      </table>
+      <div class="knopfreihe">
+        <button id="btn-verlauf-csv" class="btn" type="button">⬇ Verlauf als CSV</button>
+        <button id="btn-statistik-leeren" class="btn btn-gefahr" type="button">Verlauf leeren</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Einstellungen -->
+  <dialog id="einstellungen" class="fenster">
+    <header class="fenster-kopf">
+      <h2>⚙️ Einstellungen</h2>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schließen">✕</button>
+    </header>
+    <form id="einstellungen-form" class="fenster-inhalt einstellungen" autocomplete="off">
+      <fieldset>
+        <legend>Drehdauer</legend>
+        <div class="segmente">
+          <label><input type="radio" name="dauer" value="kurz"><span>Kurz</span></label>
+          <label><input type="radio" name="dauer" value="normal"><span>Normal</span></label>
+          <label><input type="radio" name="dauer" value="lang"><span>Lang</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Farben des Rads</legend>
+        <div class="farbschemen" id="farbschemen"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Darstellung</legend>
+        <div class="segmente">
+          <label><input type="radio" name="design" value="dunkel"><span>🌙 Dunkel</span></label>
+          <label><input type="radio" name="design" value="hell"><span>☀️ Hell</span></label>
+          <label><input type="radio" name="design" value="system"><span>💻 System</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Nach dem Drehen</legend>
+        <label class="haken"><input type="checkbox" name="autoEntfernen"> Gewinner automatisch aus dem Rad entfernen</label>
+        <label class="haken"><input type="checkbox" name="konfetti"> Konfetti</label>
+        <label class="haken"><input type="checkbox" name="ton"> Töne</label>
+        <label class="feld">
+          <span>Text über dem Ergebnis</span>
+          <input type="text" name="ergebnisText" maxlength="60">
+        </label>
+      </fieldset>
+
+      <div class="knopfreihe">
+        <button id="btn-einstellungen-standard" class="btn" type="button">Auf Standard zurücksetzen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Hilfe & Datenschutz -->
+  <dialog id="hilfe" class="fenster">
+    <header class="fenster-kopf">
+      <h2>❔ Hilfe</h2>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schließen">✕</button>
+    </header>
+    <div class="fenster-inhalt text">
+      <h3>So geht's</h3>
+      <ol>
+        <li>Rechts die Einträge eingeben – einen pro Zeile.</li>
+        <li>Auf <strong>Rad drehen</strong> klicken, auf die Mitte des Rads tippen oder die Leertaste drücken.</li>
+        <li>Im Ergebnis-Fenster kannst du den Gewinner aus dem Rad entfernen, damit er nicht noch einmal drankommt.</li>
+      </ol>
+
+      <h3>Tipps</h3>
+      <ul>
+        <li><strong>Meine Räder:</strong> Speichere mehrere Listen (z. B. pro Klasse) und wechsle mit einem Klick.</li>
+        <li><strong>Teams:</strong> Teilt alle Einträge zufällig in Gruppen auf.</li>
+        <li><strong>Teilen:</strong> Über <em>⋯ → Link zum Teilen kopieren</em> bekommen andere dieselbe Liste.</li>
+        <li><strong>Beamer:</strong> Im Vollbild wird nur das Rad gezeigt.</li>
+      </ul>
+
+      <h3>Tastenkürzel</h3>
+      <table class="kuerzel">
+        <tr><td><kbd>Leertaste</kbd> / <kbd>Enter</kbd></td><td>Rad drehen</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Vollbild an/aus</td></tr>
+        <tr><td><kbd>S</kbd></td><td>Ton an/aus</td></tr>
+        <tr><td><kbd>H</kbd> / <kbd>?</kbd></td><td>Diese Hilfe</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Fenster schließen</td></tr>
+      </table>
+
+      <h3 id="datenschutz">Datenschutz</h3>
+      <p>
+        Diese Seite läuft vollständig in deinem Browser. Es gibt keinen Server, keine Anmeldung,
+        keine Cookies und kein Tracking. Einträge, Verlauf und Einstellungen werden nur lokal
+        im Speicher deines Browsers (<code>localStorage</code>) abgelegt und nirgendwohin gesendet.
+      </p>
+      <p>
+        Beim Teilen per Link steckt die Liste im Link selbst – sie ist also für alle lesbar,
+        denen du den Link schickst.
+      </p>
+    </div>
+  </dialog>
+
+  <div id="meldung" class="meldung" role="status" aria-live="polite" popover="manual"></div>
+
   <!-- Admin-Bereich: wird nur über einen versteckten Zugang geöffnet (siehe README) -->
   <dialog id="admin" class="admin">
     <form id="admin-login" class="admin-login" autocomplete="off">
-      <h2>🔒 Einstellungen</h2>
+      <h2>🔒 Verwaltung</h2>
       <label for="admin-pin">PIN</label>
       <input id="admin-pin" type="password" inputmode="numeric" autocomplete="off">
       <p id="admin-fehler" class="fehler" hidden>Falsche PIN</p>
@@ -145,5 +329,9 @@
   <script src="js/rad.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/einstellungen.js"></script>
+  <script src="js/listen.js"></script>
+  <script src="js/teams.js"></script>
+  <script src="js/statistik.js"></script>
 </body>
 </html>
