@@ -7,7 +7,8 @@
  *
  * Läuft nur über HTTPS (oder localhost) – so verlangen es die Browser.
  */
-const CACHE = 'gluecksrad-v3';
+const VERSION = new URL(self.location.href).searchParams.get('v') || 'v3';
+const CACHE = `gluecksrad-${VERSION}`;
 
 const DATEIEN = [
   './',
@@ -40,7 +41,7 @@ self.addEventListener('install', (ereignis) => {
   ereignis.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(DATEIEN))
+      .then((cache) => cache.addAll(DATEIEN.map((datei) => `${datei}?v=${encodeURIComponent(VERSION)}`)))
       .then(() => self.skipWaiting())
   );
 });
@@ -72,7 +73,7 @@ self.addEventListener('fetch', (ereignis) => {
       .catch(() =>
         caches
           .match(anfrage, { ignoreSearch: true })
-          .then((treffer) => treffer || (anfrage.mode === 'navigate' ? caches.match('./') : Response.error()))
+          .then((treffer) => treffer || (anfrage.mode === 'navigate' ? caches.match('./', { ignoreSearch: true }) : Response.error()))
       )
   );
 });

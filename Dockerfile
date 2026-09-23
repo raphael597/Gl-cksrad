@@ -12,6 +12,12 @@ COPY css/ /usr/share/nginx/html/css/
 COPY js/ /usr/share/nginx/html/js/
 COPY icons/ /usr/share/nginx/html/icons/
 
+# Cloudflare kann JavaScript mehrere Stunden im Browser cachen. Jede Änderung
+# an den Assets bekommt deshalb beim Build eine neue URL im HTML.
+RUN set -eu; \
+    version="$(sha256sum /usr/share/nginx/html/js/*.js /usr/share/nginx/html/css/*.css /usr/share/nginx/html/sw.js | sha256sum | cut -c 1-12)"; \
+    sed -i "s/__ASSET_VERSION__/$version/g" /usr/share/nginx/html/index.html
+
 EXPOSE 3100
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
