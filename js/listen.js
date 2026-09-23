@@ -3,13 +3,15 @@
  *   - "Meine Räder": mehrere Listen speichern, öffnen, löschen
  *   - Menü "⋯": Datei laden/speichern, Link teilen, Doppelte entfernen, Alle löschen
  *   - Geteilte Links (index.html#liste=…) beim Öffnen übernehmen
+ *   - Übertragung/Sicherung: aktuelles Rad, gespeicherte Räder und Einstellungen
+ *     per Link (index.html#sicherung=…) oder Datei – ohne Admin-Einstellungen
  */
 (function () {
   'use strict';
 
   const $ = (sel) => document.querySelector(sel);
   const MAX_EINTRAEGE = 500;
-  const MAX_LAENGE = 100;
+  const { kodieren, dekodieren } = Paket;
 
   const datum = (zeit) =>
     new Date(zeit).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -17,13 +19,7 @@
   const menueSchliessen = () => ($('#eintraege-menue').open = false);
 
   /** Einträge absichern (z. B. aus Dateien oder Links): nur Text, begrenzte Länge/Anzahl. */
-  function bereinigen(liste) {
-    return liste
-      .filter((x) => typeof x === 'string')
-      .map((x) => x.trim().slice(0, MAX_LAENGE))
-      .filter(Boolean)
-      .slice(0, MAX_EINTRAEGE);
-  }
+  const bereinigen = Paket.eintraegePruefen;
 
   // ---------- Meine Räder ----------
 
@@ -140,21 +136,6 @@
 
   // ---------- Teilen per Link ----------
 
-  // Base64url, damit Umlaute und Sonderzeichen sicher in den Link passen.
-  function kodieren(objekt) {
-    const bytes = new TextEncoder().encode(JSON.stringify(objekt));
-    let binaer = '';
-    bytes.forEach((b) => (binaer += String.fromCharCode(b)));
-    return btoa(binaer).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
-  function dekodieren(text) {
-    let b64 = text.replace(/-/g, '+').replace(/_/g, '/');
-    while (b64.length % 4) b64 += '=';
-    const bytes = Uint8Array.from(atob(b64), (z) => z.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
-  }
-
   $('#btn-teilen').addEventListener('click', async () => {
     menueSchliessen();
     const basis = location.href.split('#')[0];
@@ -184,6 +165,69 @@
   }
 
   window.addEventListener('hashchange', geteilteListePruefen);
+
+  // ---------- Übertragung / Sicherung (ohne Admin-Einstellungen) ----------
+
+  /** Rückfrage und Übernahme einer (noch ungeprüften) Sicherung aus Link oder Datei. */
+  function sicherungAnbieten(roh) {
+    let sicherung;
+    try {
+      sicherung = Paket.sicherungPruefen(roh, Speicher.STANDARD_EINSTELLUNGEN);
+    } catch (e) {
+      App.melden('Die Übertragung ist ungültig');
+      return;
+    }
+    const frage =
+      `${Paket.beschreiben(sicherung)} übernehmen?\n\n` +
+      'Das aktuelle Rad und die Einstellungen werden ersetzt, gespeicherte Räder kommen dazu ' +
+      '(Räder mit gleichem Namen werden überschrieben).';
+    if (!confirm(frage)) return;
+    App.sicherungEinspielen(sicherung);
+    if (raederDialog.open) raederZeichnen();
+    App.melden('Übertragung übernommen');
+  }
+
+  $('#btn-sicherung-link').addEventListener('click', async () => {
+    const basis = location.href.split('#')[0];
+    const link = `${basis}#sicherung=${kodieren(Paket.sicherungErstellen(App.daten))}`;
+    const ok = await App.kopieren(link);
+    if (ok) App.melden('Übertragungs-Link kopiert');
+    else prompt('Übertragungs-Link zum Kopieren:', link);
+  });
+
+  $('#btn-sicherung-datei').addEventListener('click', () => {
+    const datum = new Date().toISOString().slice(0, 10);
+    App.herunterladen(`gluecksrad-sicherung-${datum}.json`, JSON.stringify(Paket.sicherungErstellen(App.daten), null, 2), 'application/json');
+  });
+
+  $('#btn-sicherung-laden').addEventListener('click', () => $('#sicherung-eingabe').click());
+
+  $('#sicherung-eingabe').addEventListener('change', async (e) => {
+    const datei = e.target.files[0];
+    e.target.value = '';
+    if (!datei) return;
+    try {
+      sicherungAnbieten(JSON.parse(await datei.text()));
+    } catch (fehler) {
+      App.melden('Die Datei ist keine gültige Sicherung');
+    }
+  });
+
+  function sicherungsLinkPruefen() {
+    const treffer = location.hash.match(/^#sicherung=(.+)$/);
+    if (!treffer) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    let roh;
+    try {
+      roh = dekodieren(treffer[1]);
+    } catch (e) {
+      App.melden('Der Übertragungs-Link ist ungültig');
+      return;
+    }
+    sicherungAnbieten(roh);
+  }
+
+  window.addEventListener('hashchange', sicherungsLinkPruefen);
 
   // ---------- Zahlenreihe (z. B. Schülernummern) ----------
 
@@ -235,4 +279,5 @@
   });
 
   geteilteListePruefen();
+  sicherungsLinkPruefen();
 })();

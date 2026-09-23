@@ -209,6 +209,18 @@
       <div class="knopfreihe">
         <button id="btn-neues-rad" class="btn" type="button">＋ Neues leeres Rad</button>
       </div>
+
+      <h3 class="abschnitt-titel">Auf ein anderes Gerät mitnehmen</h3>
+      <p class="klein">
+        Überträgt das aktuelle Rad, alle gespeicherten Räder und deine Einstellungen –
+        z. B. vom Laptop aufs Tablet. Vor dem Übernehmen wird nachgefragt.
+      </p>
+      <div class="knopfreihe">
+        <button id="btn-sicherung-link" class="btn" type="button">🔗 Übertragungs-Link kopieren</button>
+        <button id="btn-sicherung-datei" class="btn" type="button">💾 Als Datei sichern</button>
+        <button id="btn-sicherung-laden" class="btn" type="button">📂 Datei einspielen</button>
+      </div>
+      <input id="sicherung-eingabe" type="file" accept=".json,application/json" hidden>
     </div>
   </dialog>
 
@@ -333,6 +345,7 @@
         <li><strong>Werkzeuge:</strong> Timer, Würfel, Münzwurf und Zufallszahl für den Unterricht.</li>
         <li><strong>Als App:</strong> Im Browser-Menü „Zum Home-Bildschirm“ bzw. „Installieren“ wählen.</li>
         <li><strong>Teilen:</strong> Über <em>⋯ → Link zum Teilen kopieren</em> bekommen andere dieselbe Liste.</li>
+        <li><strong>Gerät wechseln:</strong> Unter <em>Meine Räder → Übertragungs-Link</em> nimmst du alle Räder und Einstellungen mit.</li>
         <li><strong>Beamer:</strong> Im Vollbild wird nur das Rad gezeigt.</li>
       </ul>
 
@@ -508,6 +521,7 @@
 
   <script src="js/logik.js"></script>
   <script src="js/speicher.js"></script>
+  <script src="js/paket.js"></script>
   <script src="js/effekte.js"></script>
   <script src="js/rad.js"></script>
   <script src="js/admin.js"></script>

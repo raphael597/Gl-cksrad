@@ -955,6 +955,13 @@ dialog::backdrop {
   flex: 0 0 auto;
 }
 
+.abschnitt-titel {
+  margin: 22px 0 6px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rand);
+  font-size: 1rem;
+}
+
 /* Teams */
 .teams-raster {
   display: grid;

@@ -617,6 +617,21 @@
       speichern();
       titelAnzeigen();
     },
+    /**
+     * Geprüfte Sicherung übernehmen (siehe Paket.sicherungPruefen): aktuelles Rad und
+     * Einstellungen ersetzen, gespeicherte Räder zusammenführen (gleicher Name = ersetzt).
+     */
+    sicherungEinspielen(sicherung) {
+      const neueNamen = new Set(sicherung.gespeichert.map((r) => r.name.toLowerCase()));
+      daten.gespeichert = sicherung.gespeichert.concat(daten.gespeichert.filter((r) => !neueNamen.has(r.name.toLowerCase())));
+      daten.titel = sicherung.titel;
+      daten.eintraege = sicherung.eintraege;
+      daten.entfernt = [];
+      daten.einstellungen = Object.assign({}, Speicher.STANDARD_EINSTELLUNGEN, sicherung.einstellungen);
+      daten.ton = sicherung.ton;
+      speichern();
+      vonSpeicherLaden();
+    },
     /** Ganzes Rad ersetzen (Titel + Einträge), z. B. beim Öffnen eines gespeicherten Rads. */
     radLaden(titel, eintraege) {
       daten.titel = titel;

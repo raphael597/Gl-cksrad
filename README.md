@@ -36,6 +36,10 @@ Einträge, Verlauf und Einstellungen bleiben im Browser gespeichert (`localStora
 
 - **📂 Meine Räder**: mehrere Listen unter eigenem Namen speichern (z. B. eine pro Klasse),
   mit einem Klick wechseln, löschen oder ein neues leeres Rad anlegen.
+  Unter **„Auf ein anderes Gerät mitnehmen“** gibt es einen Übertragungs-Link bzw. eine
+  Sicherungsdatei: aktuelles Rad, alle gespeicherten Räder und Einstellungen – vor dem Übernehmen
+  wird nachgefragt, vorhandene Räder bleiben erhalten. **Admin-Einstellungen werden nicht
+  übertragen**; die stellt man auf jedem Gerät einmal selbst ein (danach bleiben sie dort gespeichert).
 - **👥 Teams**: verteilt alle Einträge zufällig auf eine Anzahl Teams oder auf Teams mit
   fester Größe; Ergebnis als Text kopierbar.
 - **🧰 Werkzeuge**:
@@ -255,6 +259,7 @@ impressum.html       Impressum (Platzhalter ausfüllen!)
 datenschutz.html     Datenschutzerklärung (Platzhalter ausfüllen!)
 css/style.css        Aussehen (Dunkel/Hell über CSS-Variablen)
 js/design.js         setzt Hell/Dunkel vor dem ersten Zeichnen (alle Seiten)
+js/paket.js          Übertragungs-Link/Sicherung verpacken und prüfen, ohne DOM, getestet
 js/logik.js          Reine Rechenlogik (Gewichtung, Auswahl, Winkel), ohne DOM, getestet
 js/speicher.js       Laden/Speichern im localStorage
 js/rad.js            Zeichnen und Animieren des Rads (Canvas), Farbschemen
@@ -270,7 +275,7 @@ js/pwa.js            meldet den Service Worker an
 sw.js                Service Worker (Offline-Betrieb)
 manifest.webmanifest App-Manifest (Name, Farben, Icons)
 icons/               App-Icons (SVG-Quellen + daraus erzeugte PNGs), Link-Vorschau vorschau.jpg
-tests/               Tests für js/logik.js
+tests/               Tests für js/logik.js und js/paket.js
 Dockerfile           Container-Image (nginx) für Coolify & Co.
 deploy/nginx.conf    Webserver-Konfiguration (Caching, gzip, Sicherheits-Header, /healthz)
 .dockerignore        hält Tests, README usw. aus dem Image heraus

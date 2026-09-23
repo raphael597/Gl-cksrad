@@ -7,7 +7,7 @@
  *
  * Läuft nur über HTTPS (oder localhost) – so verlangen es die Browser.
  */
-const CACHE = 'gluecksrad-v2';
+const CACHE = 'gluecksrad-v3';
 
 const DATEIEN = [
   './',
@@ -19,6 +19,7 @@ const DATEIEN = [
   'js/design.js',
   'js/logik.js',
   'js/speicher.js',
+  'js/paket.js',
   'js/effekte.js',
   'js/rad.js',
   'js/admin.js',
