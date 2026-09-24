@@ -64,6 +64,22 @@ body {
   min-height: 100%;
 }
 
+/* Kein Zoom durch Doppeltippen: Schnelles Tippen (z. B. 5× auf den Titel) bleibt einfaches
+   Tippen, Knöpfe reagieren ohne Verzögerung. Zoomen mit zwei Fingern bleibt möglich. */
+html {
+  touch-action: manipulation;
+}
+
+/* Safari auf dem iPhone zoomt beim Antippen von Eingabefeldern mit weniger als 16 px
+   Schrift heran – auf Touch-Geräten deshalb nie kleiner. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
 body {
   font-family: var(--schrift);
   color: var(--text);
@@ -914,6 +930,18 @@ textarea:disabled {
   width: 40px;
   height: 40px;
   flex: 0 0 auto;
+}
+
+/* „Glücksrad“ oben links: Tippen und Festhalten ohne Markieren, Bildmenü oder Ziehen */
+.kopf .marke {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.kopf .marke-logo {
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 .marke-name {
