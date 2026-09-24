@@ -213,8 +213,8 @@ docker run --rm -p 8080:3100 gluecksrad
 ### Öffnen (unauffällig)
 
 - irgendwo auf der Seite **`admin` tippen** (nicht im Textfeld), oder
-- **5× schnell auf „Glücksrad“** oben links tippen bzw. klicken (Titel oder Logo, innerhalb von 3 s), oder
-- am Handy/Tablet den **Finger gut eine Sekunde auf „Glücksrad“ halten**, oder
+- **5× schnell auf „Glücksrad“** oben links tippen bzw. klicken (Titel oder Logo, innerhalb von 3 s),
+  auch am Handy – bewusst kein „lange drücken“, das passiert zu leicht aus Versehen, oder
 - **`index.html#admin`** aufrufen
 
 Damit das auf dem Handy zuverlässig klappt, zoomt die Seite bei schnellem Doppeltippen nicht mehr

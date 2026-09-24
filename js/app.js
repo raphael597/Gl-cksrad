@@ -693,46 +693,22 @@
     else if (taste === 't') dialogOeffnen('werkzeuge');
   });
 
-  // Versteckte Zugänge ohne Tastatur (Handy, Tablet) – auf „Glücksrad“ oben links (Titel oder Logo):
-  //   - 5× schnell tippen, oder
-  //   - den Finger gut eine Sekunde darauf halten.
-  // Gezählt wird beim Aufsetzen (pointerdown), nicht beim „click“: Den verschluckt der Browser
-  // bei schnellem Tippen gern als Zoom-Geste. Doppeltipp-Zoom ist zusätzlich per CSS aus.
-  const marke = $('.kopf .marke');
+  // Versteckter Zugang ohne Tastatur (Handy, Tablet): 5× schnell auf „Glücksrad“ oben links
+  // tippen (Titel oder Logo). Gezählt wird beim Aufsetzen (pointerdown), nicht beim „click“:
+  // Den verschluckt der Browser bei schnellem Tippen gern als Zoom-Geste. Doppeltipp-Zoom ist
+  // zusätzlich per CSS aus. Bewusst kein „lange drücken“ – das passiert zu leicht aus Versehen.
   const TIPPS = 5;
   const TIPP_FENSTER_MS = 3000;
-  const HALTEN_MS = 1200;
   let titelTipps = [];
-  let halten = null; // { timer, x, y }
-
-  function haltenAbbrechen() {
-    if (halten) clearTimeout(halten.timer);
-    halten = null;
-  }
-
-  function versteckterZugang() {
-    haltenAbbrechen();
-    titelTipps = [];
-    Admin.oeffnen();
-  }
-
-  marke.addEventListener('pointerdown', (e) => {
+  $('.kopf .marke').addEventListener('pointerdown', (e) => {
     if (e.button > 0 || !e.isPrimary) return;
     const jetzt = Date.now();
     titelTipps = titelTipps.filter((t) => jetzt - t < TIPP_FENSTER_MS).concat(jetzt);
     if (titelTipps.length >= TIPPS) {
-      versteckterZugang();
-      return;
+      titelTipps = [];
+      Admin.oeffnen();
     }
-    haltenAbbrechen();
-    halten = { timer: setTimeout(versteckterZugang, HALTEN_MS), x: e.clientX, y: e.clientY };
   });
-  marke.addEventListener('pointermove', (e) => {
-    if (halten && Math.hypot(e.clientX - halten.x, e.clientY - halten.y) > 12) haltenAbbrechen();
-  });
-  for (const art of ['pointerup', 'pointercancel', 'pointerleave']) marke.addEventListener(art, haltenAbbrechen);
-  // Langes Drücken soll kein Menü öffnen (Bild sichern, Text markieren …).
-  marke.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // index.html#admin öffnet den Admin-Bereich direkt (z. B. in einem zweiten Fenster).
   function hashPruefen() {

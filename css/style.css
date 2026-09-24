@@ -932,7 +932,7 @@ textarea:disabled {
   flex: 0 0 auto;
 }
 
-/* „Glücksrad“ oben links: Tippen und Festhalten ohne Markieren, Bildmenü oder Ziehen */
+/* „Glücksrad“ oben links: schnelles Tippen ohne Markieren, Bildmenü oder Ziehen */
 .kopf .marke {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
