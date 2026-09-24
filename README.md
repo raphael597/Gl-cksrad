@@ -213,8 +213,13 @@ docker run --rm -p 8080:3100 gluecksrad
 ### Öffnen (unauffällig)
 
 - irgendwo auf der Seite **`admin` tippen** (nicht im Textfeld), oder
-- **5× schnell auf die Überschrift** „Glücksrad“ klicken (gut fürs Tablet), oder
+- **5× schnell auf „Glücksrad“** oben links tippen bzw. klicken (Titel oder Logo, innerhalb von 3 s),
+  auch am Handy – bewusst kein „lange drücken“, das passiert zu leicht aus Versehen, oder
 - **`index.html#admin`** aufrufen
+
+Damit das auf dem Handy zuverlässig klappt, zoomt die Seite bei schnellem Doppeltippen nicht mehr
+heran (Zoomen mit zwei Fingern geht weiterhin), und Eingabefelder sind auf Touch-Geräten mindestens
+16 px groß – sonst zoomt Safari auf dem iPhone beim Antippen heran.
 
 Standard-PIN: **`1234`** – im Admin-Bereich unter „PIN ändern“ anpassen.
 Nach dem Entsperren bleibt der Bereich bis zum Schließen des Tabs offen; „🔒 Sperren“ verriegelt ihn sofort.
